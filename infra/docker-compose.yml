@@ -1,0 +1,13 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: aix
+      POSTGRES_PASSWORD: aix
+      POSTGRES_DB: aix_claims
+    ports:
+      - "5433:5432"   # 5433 por si ya tienes un Postgres local en 5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:
