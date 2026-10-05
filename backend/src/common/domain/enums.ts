@@ -46,3 +46,9 @@ export const DOCUMENT_ISSUES = [
   'otro',
 ] as const;
 export type DocumentIssue = (typeof DOCUMENT_ISSUES)[number];
+
+export const ACTOR_TYPES = ['sistema', 'modelo', 'beneficiario', 'analista'] as const;
+export type ActorType = (typeof ACTOR_TYPES)[number];
+
+export const INTAKE_CHANNELS = ['web', 'telegram', 'whatsapp', 'correo', 'oficina'] as const;
+export type IntakeChannel = (typeof INTAKE_CHANNELS)[number];

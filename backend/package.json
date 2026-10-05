@@ -16,6 +16,8 @@
   },
   "devDependencies": {
     "@nestjs/cli": "^12.0.8",
+    "@swc/core": "^1.16.13",
+    "@swc/jest": "^0.2.39",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/node": "^26.6.4",
@@ -32,7 +34,9 @@
     "start:dev": "nest start --watch",
     "test": "jest",
     "db:migrate": "tsx --env-file=.env src/database/migrate.ts",
-    "db:migrate:prod": "node dist/database/migrate.js"
+    "db:migrate:prod": "node dist/database/migrate.js",
+    "test:integration": "node --env-file=.env.test ./node_modules/jest/bin/jest.js --config test/jest-integration.json --runInBand",
+    "db:migrate:test": "tsx --env-file=.env.test src/database/migrate.ts"
   },
   "jest": {
     "moduleFileExtensions": [
