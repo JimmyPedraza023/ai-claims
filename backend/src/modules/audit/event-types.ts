@@ -6,6 +6,8 @@
 export const AUDIT_EVENTS = {
   RECLAMACION_RECIBIDA: 'reclamacion_recibida',
   ENVIO_DUPLICADO_IGNORADO: 'envio_duplicado_ignorado',
+  DOCUMENTO_RECIBIDO: 'documento_recibido',
+  DOCUMENTO_DUPLICADO_IGNORADO: 'documento_duplicado_ignorado',
 } as const;
 
 export type AuditEventType = (typeof AUDIT_EVENTS)[keyof typeof AUDIT_EVENTS];

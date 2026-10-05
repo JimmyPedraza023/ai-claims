@@ -27,6 +27,8 @@ export const envSchema = z
       .regex(/^postgres(ql)?:\/\//, 'debe empezar con postgres:// o postgresql://'),
     DATABASE_SSL: bool,
     DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
+    // Carpeta del almacenamiento local de archivos (en la nube se reemplaza por Supabase Storage).
+    STORAGE_DIR: z.string().min(1).default('./data/uploads'),
 
     // Orígenes permitidos para CORS, separados por coma.
     CORS_ORIGINS: z
