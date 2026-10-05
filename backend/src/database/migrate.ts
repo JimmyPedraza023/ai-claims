@@ -19,8 +19,8 @@ const MIGRATIONS_DIR = join(__dirname, 'migrations');
 const LOCK_ID = 727_001; // arbitrario, fijo para este proyecto
 
 async function main(): Promise<void> {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error('DATABASE_URL no está definida');
+  const url = process.env.MIGRATION_DATABASE_URL ?? process.env.DATABASE_URL;
+  if (!url) throw new Error('MIGRATION_DATABASE_URL o DATABASE_URL debe estar definida');
 
   const client = new Client({
     connectionString: url,

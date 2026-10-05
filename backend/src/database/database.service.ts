@@ -1,7 +1,21 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg';
+import { Pool, PoolClient, QueryResult, QueryResultRow, types } from 'pg';
 import { Env } from '../config/env.schema';
+
+const DATE_OID = 1082;
+
+/**
+ * Las columnas `date` (como deadline_date) se devuelven como texto 'YYYY-MM-DD'.
+ * Por defecto `pg` las convierte a un Date en la zona horaria del servidor, y
+ * ese desfase puede mover la fecha límite de un caso un día.
+ */
+const customTypes = {
+  getTypeParser: ((oid: number, format?: 'text' | 'binary') =>
+    oid === DATE_OID
+      ? (value: string) => value
+      : types.getTypeParser(oid, format as 'text')) as typeof types.getTypeParser,
+};
 
 /**
  * Único punto de acceso a PostgreSQL. Envuelve un pool de `pg`.
@@ -27,6 +41,7 @@ export class DatabaseService implements OnModuleDestroy {
       connectionTimeoutMillis: 5_000,
       statement_timeout: 15_000,
       application_name: 'aix-claims-api',
+      types: customTypes,
     });
 
     // Un error en una conexión ociosa no debe tumbar el proceso.

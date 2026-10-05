@@ -1,6 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { CLAIM_TYPES, DOCUMENT_ISSUES, DOCUMENT_STATUSES, DOCUMENT_TYPES } from './enums';
+import {
+  ACTOR_TYPES,
+  CLAIM_TYPES,
+  DOCUMENT_ISSUES,
+  DOCUMENT_STATUSES,
+  DOCUMENT_TYPES,
+  INTAKE_CHANNELS,
+} from './enums';
 
 /** Lee los valores de un CREATE TYPE ... AS ENUM de la migración 0001. */
 function enumFromSql(name: string): string[] {
@@ -19,6 +26,8 @@ describe('enums del dominio vs. base de datos', () => {
     ['document_type', DOCUMENT_TYPES],
     ['document_status', DOCUMENT_STATUSES],
     ['document_issue', DOCUMENT_ISSUES],
+    ['intake_channel', INTAKE_CHANNELS],
+    ['actor_type', ACTOR_TYPES],
   ];
 
   it.each(casos)('%s coincide con la migración SQL', (nombre, valoresTs) => {
