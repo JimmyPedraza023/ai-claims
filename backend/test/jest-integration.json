@@ -8,14 +8,36 @@
       {
         "jsc": {
           "target": "es2022",
-          "parser": { "syntax": "typescript", "decorators": true },
-          "transform": { "legacyDecorator": true, "decoratorMetadata": true }
+          "parser": {
+            "syntax": "typescript",
+            "decorators": true
+          },
+          "transform": {
+            "legacyDecorator": true,
+            "decoratorMetadata": true
+          }
         },
-        "module": { "type": "commonjs" }
+        "module": {
+          "type": "commonjs"
+        }
+      }
+    ],
+    "^.+\\.[m]js$": [
+      "@swc/jest",
+      {
+        "jsc": {
+          "target": "es2022",
+          "parser": {
+            "syntax": "ecmascript"
+          }
+        },
+        "module": {
+          "type": "commonjs"
+        }
       }
     ]
   },
-  "transformIgnorePatterns": ["/node_modules/(?!@nestjs/)"],
+  "transformIgnorePatterns": ["/node_modules/(?!@nestjs/|pdfjs-dist/)"],
   "testEnvironment": "node",
   "testTimeout": 20000
 }
