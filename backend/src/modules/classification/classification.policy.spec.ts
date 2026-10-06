@@ -6,6 +6,8 @@ import type {
   ClaimClassification, ClaimType, DocumentAnalysis, DocumentType,
 } from './classification.schemas.js';
 
+import { validityConfidence } from './classification.policy.js';
+
 const f = <T>(value: T, confidence = 0.95) => ({ value, confidence });
 
 function doc(over: Partial<DocumentAnalysis> = {}): DocumentAnalysis {
@@ -169,5 +171,19 @@ describe('decideClaimType', () => {
     expect(decideClaimType(clasif('indeterminado'), existing)).toMatchObject({
       claimType: 'muerte_natural', shouldWrite: false, reviewRequired: true,
     });
+  });
+});
+
+describe('validityConfidence', () => {
+  it('toma la confianza más baja de las comprobaciones que le aplican', () => {
+    expect(validityConfidence(formularioSarlaft({ signed: f<boolean | null>(true, 0.82), legible: f(true, 0.9) }))).toBe(0.82);
+  });
+
+  it('ignora la firma en documentos que no la exigen', () => {
+    expect(validityConfidence(doc({ signed: f<boolean | null>(false, 0.1) }))).toBe(0.95);
+  });
+
+  it('en la cédula del asegurado cuenta la coincidencia', () => {
+    expect(validityConfidence(cedulaAsegurado({ matchesInsured: f<boolean | null>(true, 0.81) }))).toBe(0.81);
   });
 });

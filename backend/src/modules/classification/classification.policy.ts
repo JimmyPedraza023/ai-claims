@@ -16,6 +16,15 @@ export const THRESHOLDS = {
 const SIGNATURE_REQUIRED: ReadonlySet<DocumentType> = new Set(['formulario_sarlaft']);
 const MUST_MATCH_INSURED: ReadonlySet<DocumentType> = new Set(['documento_identidad_asegurado']);
 
+/** Confianza de "este documento sirve": la del eslabón más débil de las comprobaciones que le aplican. */
+export function validityConfidence(a: DocumentAnalysis): number {
+  const type = a.documentType.value;
+  const parts = [a.documentType.confidence, a.legible.confidence];
+  if (SIGNATURE_REQUIRED.has(type)) parts.push(a.signed.confidence);
+  if (MUST_MATCH_INSURED.has(type)) parts.push(a.matchesInsured.confidence);
+  return Math.min(...parts);
+}
+
 // ---------- Veredicto por documento ----------
 
 export type DocumentVerdictStatus = 'valido' | 'en_revision' | 'invalido' | 'no_corresponde';
