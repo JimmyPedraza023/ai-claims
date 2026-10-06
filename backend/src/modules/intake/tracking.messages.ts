@@ -41,3 +41,16 @@ export const HEADLINES = {
   cerrada:
     'Tu reclamación ya fue resuelta. La compañía te comunicará la decisión por sus medios formales.',
 } as const;
+
+export const TRACKING_NOT_FOUND_MESSAGE =
+  'No encontramos tu solicitud. Revisa que el enlace esté completo, tal como te lo enviamos.';
+
+export const UPLOAD_RECEIVED_MESSAGE =
+  'Recibimos tus documentos. Los estamos revisando y te escribiremos si necesitamos algo más.';
+
+export const UPLOAD_REJECTED_CLOSED =
+  'Tu reclamación ya fue resuelta, por eso no recibimos más documentos por aquí.';
+
+export const UPLOAD_REJECTED_COMPLETE =
+  'Tu expediente ya está completo, por eso no recibimos más documentos por aquí. ' +
+  'Si necesitas corregir algo, escríbenos y lo revisamos contigo.';

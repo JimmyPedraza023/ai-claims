@@ -5,9 +5,8 @@ import { ClaimsService } from '../claims/claims.service';
 import { DocumentsService } from '../documents/documents.service';
 import { buildTrackingView } from './tracking.view';
 import type { TrackingView } from './tracking.view';
+import { isWellFormedTrackingToken } from '../claims/tracking-token';
 
-/** randomBytes(32) en base64url mide siempre 43 caracteres: cualquier otra cosa ni se consulta. */
-const TOKEN_FORMAT = /^[A-Za-z0-9_-]{43}$/;
 
 @Injectable()
 export class TrackingService {
@@ -19,7 +18,7 @@ export class TrackingService {
 
   /** Devuelve null si el token no corresponde a ningún caso: el llamador no distingue el motivo. */
   async view(token: string): Promise<TrackingView | null> {
-    if (!TOKEN_FORMAT.test(token)) return null;
+    if (!isWellFormedTrackingToken(token)) return null;
 
     const claim = await this.claims.findByTrackingToken(this.db, token);
     if (!claim) return null;

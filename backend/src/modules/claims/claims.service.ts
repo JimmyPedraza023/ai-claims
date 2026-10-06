@@ -130,4 +130,9 @@ export class ClaimsService {
   findByTrackingToken(client: Queryable, token: string): Promise<ClaimRecord | null> {
     return this.repo.findByTrackingTokenHash(client, hashTrackingToken(token));
   }
+
+  /** Úsese dentro de una transacción: nadie más puede cambiar el caso hasta que termine. */
+  lockByTrackingToken(client: Queryable, token: string): Promise<ClaimRecord | null> {
+    return this.repo.findByTrackingTokenHashForUpdate(client, hashTrackingToken(token));
+  }
 }

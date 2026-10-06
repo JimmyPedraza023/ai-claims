@@ -3,9 +3,7 @@ import { Controller, Get, Header, Headers, NotFoundException, UseGuards } from '
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { TrackingService } from './tracking.service';
 import type { TrackingView } from './tracking.view';
-
-const NOT_FOUND_MESSAGE =
-  'No encontramos tu solicitud. Revisa que el enlace esté completo, tal como te lo enviamos.';
+import { TRACKING_NOT_FOUND_MESSAGE } from './tracking.messages';
 
 /**
  * Seguimiento del beneficiario. El token va en una cabecera, nunca en la URL: las URL
@@ -23,7 +21,7 @@ export class TrackingController {
   async get(@Headers('x-tracking-token') token?: string): Promise<TrackingView> {
     const view = token ? await this.tracking.view(token) : null;
     // Sin token, token mal formado o inexistente: la misma respuesta.
-    if (!view) throw new NotFoundException(NOT_FOUND_MESSAGE);
+    if (!view) throw new NotFoundException(TRACKING_NOT_FOUND_MESSAGE);
     return view;
   }
 }

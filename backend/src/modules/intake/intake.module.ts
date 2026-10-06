@@ -14,6 +14,8 @@ import { DevTrackingLinkSender, TRACKING_LINK_SENDER } from './tracking-link-sen
 import { TrackingController } from './tracking.controller';
 import { TrackingService } from './tracking.service';
 import { TurnstileService } from './turnstile.service';
+import { ComplementController } from './complement.controller';
+import { ComplementService } from './complement.service';
 
 @Module({
   imports: [
@@ -24,9 +26,10 @@ import { TurnstileService } from './turnstile.service';
     JobsModule,
     ThrottlerModule.forRoot(intakeThrottlerOptions),
   ],
-  controllers: [IntakeController, TrackingController],
+  controllers: [IntakeController, TrackingController, ComplementController],
   providers: [
     IntakeService,
+    ComplementService,
     SubmissionProcessor,
     TrackingService,
     TurnstileService,

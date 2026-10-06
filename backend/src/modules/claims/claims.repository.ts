@@ -186,4 +186,13 @@ export class ClaimsRepository {
     );
     return rows[0] ? mapClaim(rows[0]) : null;
   }
+
+  /** Igual que findByTrackingTokenHash, pero bloquea la fila hasta que termine la transacción. */
+  async findByTrackingTokenHashForUpdate(client: Queryable, hash: string): Promise<ClaimRecord | null> {
+    const { rows } = await client.query(
+      `SELECT ${CLAIM_COLUMNS} FROM claims WHERE tracking_token_hash = $1 FOR UPDATE`,
+      [hash],
+    );
+    return rows[0] ? mapClaim(rows[0]) : null;
+  }
 }

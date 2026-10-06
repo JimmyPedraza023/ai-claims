@@ -21,3 +21,8 @@ export function generateTrackingToken(): TrackingToken {
 export function hashTrackingToken(token: string): string {
   return sha256Hex(token);
 }
+
+/** randomBytes(32) en base64url mide siempre 43 caracteres: cualquier otra cosa no es un token nuestro. */
+export function isWellFormedTrackingToken(token: string): boolean {
+  return /^[A-Za-z0-9_-]{43}$/.test(token);
+}

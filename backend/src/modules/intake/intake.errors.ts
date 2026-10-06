@@ -10,3 +10,19 @@ export class OpenClaimChangedError extends Error {
     this.name = 'OpenClaimChangedError';
   }
 }
+
+/** El token de seguimiento no corresponde a ningún caso (o está mal formado). */
+export class TrackingTokenNotFoundError extends Error {
+  constructor() {
+    super('El token de seguimiento no corresponde a ninguna reclamación');
+    this.name = 'TrackingTokenNotFoundError';
+  }
+}
+
+/** El caso ya no admite documentos del beneficiario: está cerrado o ya quedó completo. */
+export class ClaimNotAcceptingDocumentsError extends Error {
+  constructor(public readonly reason: 'cerrada' | 'completa') {
+    super(`La reclamación no admite más documentos (${reason})`);
+    this.name = 'ClaimNotAcceptingDocumentsError';
+  }
+}
