@@ -36,6 +36,7 @@ describe('validateEnv', () => {
     NODE_ENV: 'production',
     CORS_ORIGINS: 'https://app.com',
     IP_HASH_SECRET: 'x'.repeat(32),
+    TURNSTILE_SECRET_KEY: 'clave-de-pruebas',
   };
 
   it('exige CORS_ORIGINS en producción', () => {
@@ -71,5 +72,12 @@ describe('validateEnv', () => {
     } catch (e) {
       expect((e as Error).message).not.toContain('clave-super-secreta');
     }
+  });
+
+  it('exige TURNSTILE_SECRET_KEY en producción y es opcional fuera de ella', () => {
+    expect(() => validateEnv({ ...prod, TURNSTILE_SECRET_KEY: undefined })).toThrow(
+      /TURNSTILE_SECRET_KEY/,
+    );
+    expect(validateEnv(base).TURNSTILE_SECRET_KEY).toBeUndefined();
   });
 });

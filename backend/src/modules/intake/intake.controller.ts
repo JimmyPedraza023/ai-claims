@@ -31,6 +31,7 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import { Env } from '../../config/env.schema';
 import { hashClientIp } from './client-ip';
+import { TurnstileGuard } from './turnstile.guard';
 
 /**
  * Misma respuesta para caso nuevo, anexado y duplicado: no se puede averiguar
@@ -58,7 +59,7 @@ function toHttpError(err: unknown): unknown {
 }
 
 @Controller('intake')
-@UseGuards(ThrottlerGuard)
+@UseGuards(ThrottlerGuard, TurnstileGuard)
 export class IntakeController {
   private readonly logger = new Logger(IntakeController.name);
 

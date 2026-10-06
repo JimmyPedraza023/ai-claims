@@ -35,6 +35,12 @@ export const envSchema = z
       z.string().min(16, 'debe tener al menos 16 caracteres').optional(),
     ),
 
+    // Clave secreta de Cloudflare Turnstile (captcha). Sin ella, la verificación se desactiva. 
+    TURNSTILE_SECRET_KEY: z.preprocess(
+      (v) => (v === '' ? undefined : v),
+      z.string().min(1).optional(),
+    ),
+
     // Orígenes permitidos para CORS, separados por coma.
     CORS_ORIGINS: z
       .string()
@@ -58,6 +64,13 @@ export const envSchema = z
       ctx.addIssue({
         code: 'custom',
         path: ['IP_HASH_SECRET'],
+        message: 'es obligatoria en producción',
+      });
+    }
+    if (env.NODE_ENV === 'production' && !env.TURNSTILE_SECRET_KEY) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['TURNSTILE_SECRET_KEY'],
         message: 'es obligatoria en producción',
       });
     }

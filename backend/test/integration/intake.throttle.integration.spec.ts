@@ -10,6 +10,7 @@ import { IntakeService } from '../../src/modules/intake/intake.service';
 import { THROTTLE_MESSAGE } from '../../src/modules/intake/intake.throttle';
 import { TRACKING_LINK_SENDER } from '../../src/modules/intake/tracking-link-sender';
 import { ConfigService } from '@nestjs/config';
+import { TurnstileService } from '../../src/modules/intake/turnstile.service';
 
 describe('Límite de peticiones en POST /intake', () => {
   let app: INestApplication;
@@ -30,6 +31,7 @@ describe('Límite de peticiones en POST /intake', () => {
         { provide: TRACKING_LINK_SENDER, useValue: { send: jest.fn() } },
         { provide: APP_FILTER, useClass: AllExceptionsFilter },
         { provide: ConfigService, useValue: { get: () => undefined } },
+        { provide: TurnstileService, useValue: { enabled: false } },
       ],
     }).compile();
 

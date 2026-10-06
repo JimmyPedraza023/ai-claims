@@ -19,6 +19,7 @@ import { JobsRepository } from '../../src/modules/jobs/jobs.repository';
 import { createTestContext, newIdempotencyKey, randomDocument } from './helpers';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
+import { TurnstileService } from '../../src/modules/intake/turnstile.service';
 
 describe('POST /intake (HTTP real, contra PostgreSQL real)', () => {
   const ctx = createTestContext();
@@ -59,6 +60,7 @@ describe('POST /intake (HTTP real, contra PostgreSQL real)', () => {
           provide: ConfigService,
           useValue: { get: (key: string) => (key === 'IP_HASH_SECRET' ? 'secreto-de-pruebas-0123456789' : undefined) },
         },
+        { provide: TurnstileService, useValue: { enabled: false } },
       ],
     }).compile();
 
