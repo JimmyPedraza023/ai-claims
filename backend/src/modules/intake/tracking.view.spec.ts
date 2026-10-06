@@ -107,4 +107,13 @@ describe('buildTrackingView', () => {
     ]);
     expect(JSON.stringify(view)).not.toContain('doc-');
   });
+
+  it('no dice "falta" mientras un documento sin requisito espera revisión humana', () => {
+  const view = buildTrackingView(claim({ claimType: 'muerte_natural' }), [
+    { id: 'd1', type: 'no_identificado', status: 'requiere_revision', issue: 'tipo_no_reconocido',
+      uploadedAt: new Date('2026-10-01T10:00:00Z') },
+  ]);
+  expect(view.checklist.some((i) => i.state === 'falta')).toBe(false);
+  expect(view.stage).toBe('revisando');
+});
 });

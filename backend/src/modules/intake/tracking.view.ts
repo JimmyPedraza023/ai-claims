@@ -56,7 +56,7 @@ export function buildTrackingView(
   }
 
   const result = evaluateCompleteness(claim.claimType, documents);
-  const waiting = result.pendingAnalysisCount > 0;
+  const waiting = result.pendingAnalysisCount + result.unmatchedInReviewCount > 0;
 
   const checklist: TrackingChecklistItem[] = result.requirements.map((r) => ({
     documentType: r.documentType,

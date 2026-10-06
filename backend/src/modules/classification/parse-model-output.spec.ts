@@ -3,7 +3,7 @@ import { LlmError } from './llm-provider.js';
 import { ClaimClassificationSchema, DocumentAnalysisSchema } from './classification.schemas.js';
 
 const analysis = {
-  documentType: { value: 'sarlaft', confidence: 0.9 },
+  documentType: { value: 'formulario_sarlaft', confidence: 0.9 },
   legible: { value: true, confidence: 0.95 },
   signed: { value: false, confidence: 0.8 },
   matchesInsured: { value: null, confidence: 1 },
@@ -17,7 +17,7 @@ function kindOf(fn: () => unknown): string | undefined {
 
 describe('parseModelOutput', () => {
   it('acepta JSON limpio', () => {
-    expect(parseModelOutput(JSON.stringify(analysis), DocumentAnalysisSchema).documentType.value).toBe('sarlaft');
+    expect(parseModelOutput(JSON.stringify(analysis), DocumentAnalysisSchema).documentType.value).toBe('formulario_sarlaft');
   });
 
   it('acepta JSON dentro de un bloque de código', () => {

@@ -19,11 +19,11 @@ function doc(over: Partial<DocumentAnalysis> = {}): DocumentAnalysis {
   };
 }
 
-const sarlaft = (over: Partial<DocumentAnalysis> = {}) =>
-  doc({ documentType: f<DocumentType>('sarlaft'), signed: f<boolean | null>(true), ...over });
+const formularioSarlaft = (over: Partial<DocumentAnalysis> = {}) =>
+  doc({ documentType: f<DocumentType>('formulario_sarlaft'), signed: f<boolean | null>(true), ...over });
 
 const cedulaAsegurado = (over: Partial<DocumentAnalysis> = {}) =>
-  doc({ documentType: f<DocumentType>('identidad_asegurado'), matchesInsured: f<boolean | null>(true), ...over });
+  doc({ documentType: f<DocumentType>('documento_identidad_asegurado'), matchesInsured: f<boolean | null>(true), ...over });
 
 describe('evaluateDocument', () => {
   it('un documento claro, sin reglas especiales, es válido', () => {
@@ -31,7 +31,7 @@ describe('evaluateDocument', () => {
   });
 
   it('tipo incierto: en revisión y sin tipo, para que no cuente en ningún requisito', () => {
-    const v = evaluateDocument(doc({ documentType: f<DocumentType>('sarlaft', 0.5) }));
+    const v = evaluateDocument(doc({ documentType: f<DocumentType>('formulario_sarlaft', 0.5) }));
     expect(v).toEqual({ status: 'en_revision', documentType: null, reason: 'tipo_incierto' });
   });
 
@@ -50,21 +50,21 @@ describe('evaluateDocument', () => {
     });
   });
 
-  it('SARLAFT firmado es válido', () => {
-    expect(evaluateDocument(sarlaft()).status).toBe('valido');
+  it('FORMULARIO_SARLAFT firmado es válido', () => {
+    expect(evaluateDocument(formularioSarlaft()).status).toBe('valido');
   });
 
-  it('SARLAFT sin firma, con confianza: inválido por falta de firma', () => {
-    expect(evaluateDocument(sarlaft({ signed: f<boolean | null>(false) }))).toMatchObject({
+  it('FORMULARIO_SARLAFT sin firma, con confianza: inválido por falta de firma', () => {
+    expect(evaluateDocument(formularioSarlaft({ signed: f<boolean | null>(false) }))).toMatchObject({
       status: 'invalido', reason: 'sin_firma',
     });
   });
 
-  it('SARLAFT con firma dudosa o sin dato de firma: revisión humana', () => {
-    expect(evaluateDocument(sarlaft({ signed: f<boolean | null>(false, 0.5) }))).toMatchObject({
+  it('FORMULARIO_SARLAFT con firma dudosa o sin dato de firma: revisión humana', () => {
+    expect(evaluateDocument(formularioSarlaft({ signed: f<boolean | null>(false, 0.5) }))).toMatchObject({
       status: 'en_revision', reason: 'firma_incierta',
     });
-    expect(evaluateDocument(sarlaft({ signed: f<boolean | null>(null) }))).toMatchObject({
+    expect(evaluateDocument(formularioSarlaft({ signed: f<boolean | null>(null) }))).toMatchObject({
       status: 'en_revision', reason: 'firma_incierta',
     });
   });
@@ -75,7 +75,7 @@ describe('evaluateDocument', () => {
   });
 
   it('si no se lee, ese es el motivo: no se juzga la firma', () => {
-    const v = evaluateDocument(sarlaft({ legible: f(false), signed: f<boolean | null>(false) }));
+    const v = evaluateDocument(formularioSarlaft({ legible: f(false), signed: f<boolean | null>(false) }));
     expect(v.reason).toBe('ilegible');
   });
 
@@ -105,12 +105,17 @@ describe('evaluateDocument', () => {
 
   it('invariante: con cualquier confianza bajo su umbral, nunca sale "valido"', () => {
     const casos = [
-      sarlaft({ documentType: f<DocumentType>('sarlaft', THRESHOLDS.documentType - 0.01) }),
-      sarlaft({ legible: f(true, THRESHOLDS.legible - 0.01) }),
-      sarlaft({ signed: f<boolean | null>(true, THRESHOLDS.signed - 0.01) }),
+      formularioSarlaft({ documentType: f<DocumentType>('formulario_sarlaft', THRESHOLDS.documentType - 0.01) }),
+      formularioSarlaft({ legible: f(true, THRESHOLDS.legible - 0.01) }),
+      formularioSarlaft({ signed: f<boolean | null>(true, THRESHOLDS.signed - 0.01) }),
       cedulaAsegurado({ matchesInsured: f<boolean | null>(true, THRESHOLDS.matchesInsured - 0.01) }),
     ];
     for (const caso of casos) expect(evaluateDocument(caso).status).not.toBe('valido');
+  });
+
+  it('"no_identificado" va a revisión aunque el modelo esté seguro', () => {
+    const v = evaluateDocument(doc({ documentType: f<DocumentType>('no_identificado', 0.99) }));
+    expect(v).toEqual({ status: 'en_revision', documentType: null, reason: 'tipo_incierto' });
   });
 });
 

@@ -40,6 +40,7 @@ export interface LlmImage {
 export interface AnalyzeDocumentInput {
   images: LlmImage[];
   insured: { fullName: string; documentNumber: string };
+  beneficiary: { fullName: string; documentNumber: string };
 }
 
 export interface ClassifyClaimInput {

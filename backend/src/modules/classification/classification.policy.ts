@@ -13,10 +13,8 @@ export const THRESHOLDS = {
   claimType: 0.85,
 } as const;
 
-/** Documentos que deben ir firmados (el enunciado exige "SARLAFT firmado"). */
-const SIGNATURE_REQUIRED: ReadonlySet<DocumentType> = new Set(['sarlaft']);
-/** Documentos que deben corresponder al asegurado. */
-const MUST_MATCH_INSURED: ReadonlySet<DocumentType> = new Set(['identidad_asegurado']);
+const SIGNATURE_REQUIRED: ReadonlySet<DocumentType> = new Set(['formulario_sarlaft']);
+const MUST_MATCH_INSURED: ReadonlySet<DocumentType> = new Set(['documento_identidad_asegurado']);
 
 // ---------- Veredicto por documento ----------
 
@@ -45,9 +43,13 @@ export function evaluateDocument(a: DocumentAnalysis): DocumentVerdict {
     return verdict('en_revision', null, 'tipo_incierto');
   }
   const type = a.documentType.value;
+  if (type === 'no_identificado' || unsure(a.documentType.confidence, THRESHOLDS.documentType)) {
+    return verdict('en_revision', null, 'tipo_incierto');
+  }
+  
   if (type === 'otro') return verdict('no_corresponde', 'otro', 'tipo_no_requerido');
-
   // La legibilidad va primero: si no se lee, no se puede juzgar firma ni identidad.
+  // Con poca confianza nunca se tira a la basura: va a revisión humana.
   if (unsure(a.legible.confidence, THRESHOLDS.legible)) {
     return verdict('en_revision', type, 'legibilidad_incierta');
   }
