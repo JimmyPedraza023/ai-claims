@@ -187,3 +187,17 @@ describe('validityConfidence', () => {
     expect(validityConfidence(cedulaAsegurado({ matchesInsured: f<boolean | null>(true, 0.81) }))).toBe(0.81);
   });
 });
+
+describe('evaluateDocument con páginas omitidas', () => {
+  it('un válido pasa a revisión', () => {
+    expect(evaluateDocument(formularioSarlaft(), { partial: true })).toMatchObject({ status: 'en_revision', reason: 'paginas_omitidas' });
+  });
+  it('un inválido también: la firma podría estar en una página que no se vio', () => {
+    expect(evaluateDocument(formularioSarlaft({ signed: f<boolean | null>(false) }), { partial: true }))
+      .toMatchObject({ status: 'en_revision', reason: 'paginas_omitidas' });
+  });
+  it('lo que ya iba a revisión o no corresponde a nada no cambia', () => {
+    expect(evaluateDocument(doc({ documentType: f<DocumentType>('otro') }), { partial: true }).status).toBe('no_corresponde');
+    expect(evaluateDocument(doc({ documentType: f<DocumentType>('formulario_sarlaft', 0.4) }), { partial: true }).reason).toBe('tipo_incierto');
+  });
+});

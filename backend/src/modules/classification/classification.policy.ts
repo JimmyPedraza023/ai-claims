@@ -32,7 +32,8 @@ export type DocumentVerdictStatus = 'valido' | 'en_revision' | 'invalido' | 'no_
 export type DocumentReasonCode =
   | 'ilegible' | 'sin_firma' | 'no_corresponde_asegurado'              // invalido
   | 'tipo_incierto' | 'legibilidad_incierta' | 'firma_incierta' | 'asegurado_incierto' // en_revision
-  | 'tipo_no_requerido';                                               // no_corresponde
+  | 'tipo_no_requerido'
+  | 'paginas_omitidas';                                               // no_corresponde
 
 export interface DocumentVerdict {
   status: DocumentVerdictStatus;
@@ -47,7 +48,7 @@ const verdict = (
 
 const unsure = (confidence: number, threshold: number) => confidence < threshold;
 
-export function evaluateDocument(a: DocumentAnalysis): DocumentVerdict {
+function judgeDocument(a: DocumentAnalysis): DocumentVerdict {
   if (unsure(a.documentType.confidence, THRESHOLDS.documentType)) {
     return verdict('en_revision', null, 'tipo_incierto');
   }
@@ -79,6 +80,23 @@ export function evaluateDocument(a: DocumentAnalysis): DocumentVerdict {
   }
 
   return verdict('valido', type, null);
+}
+
+/**
+ * Si faltaron páginas por analizar, ningún veredicto firme es confiable:
+ * va a una persona.
+ */
+export function evaluateDocument(
+  a: DocumentAnalysis,
+  opts: { partial?: boolean } = {},
+): DocumentVerdict {
+  const v = judgeDocument(a);
+
+  if (opts.partial && (v.status === 'valido' || v.status === 'invalido')) {
+    return verdict('en_revision', v.documentType, 'paginas_omitidas');
+  }
+
+  return v;
 }
 
 // ---------- Tipo de reclamación ----------

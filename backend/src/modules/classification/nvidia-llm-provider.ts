@@ -29,6 +29,9 @@ export class NvidiaLlmProvider implements LlmProvider {
   private readonly maxTokens: number;
   private readonly fetchImpl: typeof fetch;
 
+  readonly providerName = 'nvidia';
+  get modelName(): string { return this.config.model; }
+
   constructor(private readonly config: NvidiaLlmConfig) {
     const base = (config.baseUrl ?? 'https://integrate.api.nvidia.com/v1').replace(/\/+$/, '');
     this.url = `${base}/chat/completions`;

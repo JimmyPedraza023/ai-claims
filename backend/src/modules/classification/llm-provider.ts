@@ -54,6 +54,8 @@ export interface LlmResult<T> {
 }
 
 export interface LlmProvider {
+  readonly providerName: string;
+  readonly modelName: string;
   analyzeDocument(input: AnalyzeDocumentInput, signal?: AbortSignal): Promise<LlmResult<DocumentAnalysis>>;
   classifyClaim(input: ClassifyClaimInput, signal?: AbortSignal): Promise<LlmResult<ClaimClassification>>;
 }

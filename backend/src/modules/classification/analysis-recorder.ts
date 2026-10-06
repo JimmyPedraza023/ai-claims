@@ -12,6 +12,7 @@ import {
 import type { ClaimClassification, DocumentAnalysis } from './classification.schemas';
 import { LlmError, type LlmResult } from './llm-provider';
 import { PROMPT_VERSION } from './prompts';
+import { DocumentIssue } from '../../common/domain/enums';
 
 /** Recibe una conexión ya abierta (Queryable): quien orquesta decide qué va en la misma transacción. */
 
@@ -31,6 +32,7 @@ export class AnalysisRecorder {
       provider: string;
       inputRef: Record<string, unknown>;
       result: LlmResult<DocumentAnalysis>;
+      partial?: boolean
     },
   ): Promise<{ aiRunId: string; verdict: DocumentVerdict; fields: DocumentFields; applied: boolean }> {
     const { data, meta } = input.result;
@@ -43,7 +45,7 @@ export class AnalysisRecorder {
       status: 'ok', error: null, latencyMs: meta.latencyMs,
     });
 
-    const verdict = evaluateDocument(data);
+    const verdict = evaluateDocument(data, { partial: input.partial });
     const fields = verdictToDocumentFields(verdict);
 
     // Aplicarlo solo si el documento sigue pendiente.
@@ -125,6 +127,20 @@ export class AnalysisRecorder {
       status: aiRunStatusFor(kind),
       error: `${kind}: ${message}`.slice(0, 500),
       latencyMs: llm?.meta?.latencyMs ?? null,
+    });
+  }
+
+  /** Documento que el sistema no pudo analizar solo (archivo dañado, modelo caído): queda para una persona. */
+  recordUnprocessable(
+    client: Queryable,
+    input: { documentId: string; issue: DocumentIssue; detail: string; reasonCode: string },
+  ): Promise<boolean> {
+    return this.documents.applyAnalysis(client, input.documentId, {
+      type: 'no_identificado',
+      status: 'requiere_revision',
+      issue: input.issue,
+      issueDetail: input.detail,
+      extractedData: { automatic: false, reason: input.reasonCode, policyVersion: POLICY_VERSION },
     });
   }
 }

@@ -21,3 +21,13 @@ export interface JobQueue {
   /** Marca como fallidos los trabajos abandonados que ya agotaron sus intentos. Devuelve cuántos. */
   sweep(): Promise<number>;
 }
+
+/** Un trabajo que no tiene sentido reintentar (datos que no existen, por ejemplo). El runner lo reconoce por `retryable`. */
+export class PermanentJobError extends Error {
+  readonly kind = 'permanente';
+  readonly retryable = false;
+  constructor(message: string) {
+    super(message);
+    this.name = 'PermanentJobError';
+  }
+}

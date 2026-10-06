@@ -9,6 +9,8 @@ export const AUDIT_EVENTS = {
   COMPLEMENTO_RECIBIDO: 'complemento_recibido',
   DOCUMENTO_RECIBIDO: 'documento_recibido',
   DOCUMENTO_DUPLICADO_IGNORADO: 'documento_duplicado_ignorado',
+  DOCUMENTO_ANALIZADO: 'documento_analizado',
+  DOCUMENTO_NO_PROCESADO: 'documento_no_procesado',
 } as const;
 
 export type AuditEventType = (typeof AUDIT_EVENTS)[keyof typeof AUDIT_EVENTS];

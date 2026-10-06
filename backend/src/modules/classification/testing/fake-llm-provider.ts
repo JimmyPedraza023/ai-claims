@@ -14,6 +14,8 @@ const meta = () => ({ model: 'fake', promptVersion: 'fake-v1', latencyMs: 0, raw
 export class FakeLlmProvider implements LlmProvider {
   readonly calls = { analyzeDocument: 0, classifyClaim: 0 };
   constructor(private readonly script: FakeScript = {}) {}
+  readonly providerName = 'fake';
+  readonly modelName = 'fake';
 
   async analyzeDocument(input: AnalyzeDocumentInput): Promise<LlmResult<DocumentAnalysis>> {
     this.calls.analyzeDocument++;
