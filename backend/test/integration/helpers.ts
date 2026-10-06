@@ -1,10 +1,12 @@
 import { randomInt, randomUUID } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import { Env } from '../../src/config/env.schema';
+import { sha256Hex } from '../../src/common/utils/hash';
 import { DatabaseService } from '../../src/database/database.service';
 import { AuditService } from '../../src/modules/audit/audit.service';
 import { ClaimsRepository } from '../../src/modules/claims/claims.repository';
 import { ClaimsService, CreateClaimInput } from '../../src/modules/claims/claims.service';
+import { buildStoragePath } from '../../src/modules/documents/file-storage';
 import { generateTrackingToken } from '../../src/modules/claims/tracking-token';
 
 /**
@@ -67,4 +69,29 @@ export async function createAnalyst(db: DatabaseService, fullName = 'Ana Analist
     [`analista-${randomUUID()}@example.com`, fullName],
   );
   return rows[0].id;
+}
+
+/**
+ * Crea un caso con su envío inicial y un documento que queda en 'pendiente_analisis'
+ * (el default). Devuelve los ids del caso y del documento.
+ */
+export async function seedDocument(db: DatabaseService): Promise<{ claimId: string; documentId: string }> {
+  const claims = new ClaimsService(new ClaimsRepository(), new AuditService(db));
+  return db.withTransaction(async (c) => {
+    const claim = await claims.createClaim(c, newClaimInput());
+    const { submission } = await claims.registerSubmission(c, {
+      claimId: claim.id,
+      idempotencyKey: newIdempotencyKey(),
+      kind: 'inicial',
+      channel: 'web',
+    });
+    const buffer = Buffer.from(`seed-document-${claim.id}`);
+    const { rows } = await c.query<{ id: string }>(
+      `INSERT INTO documents (claim_id, submission_id, original_filename, mime_type, size_bytes, sha256, storage_path, status)
+       VALUES ($1, $2, 'documento.pdf', 'application/pdf', $3, $4, $5, 'pendiente_analisis')
+       RETURNING id`,
+      [claim.id, submission.id, buffer.length, sha256Hex(buffer), buildStoragePath(sha256Hex(buffer), 'pdf')],
+    );
+    return { claimId: claim.id, documentId: rows[0].id };
+  });
 }

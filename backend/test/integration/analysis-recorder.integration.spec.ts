@@ -1,4 +1,4 @@
-import { createAnalyst, createTestContext } from './helpers';
+import { createAnalyst, createTestContext, seedDocument } from './helpers';
 import { AnalysisRecorder } from '../../src/modules/classification/analysis-recorder';
 import { AiRunsRepository } from '../../src/modules/classification/ai-runs.repository';
 import { ClassificationsRepository } from '../../src/modules/classification/classifications.repository';
@@ -12,14 +12,6 @@ const recorder = new AnalysisRecorder(new AiRunsRepository(), new Classification
 afterAll(async () => {
   await ctx.db.onModuleDestroy(); // cierra el pool igual que en tus otros specs
 });
-
-/**
- * ADAPTAR: copia aquí cómo documents.integration.spec.ts crea un caso, un envío y un documento
- * (el documento debe quedar en 'pendiente_analisis', que es el default). Devuelve sus ids.
- */
-async function seedDocument(): Promise<{ claimId: string; documentId: string }> {
-  throw new Error('Adapta seedDocument() a tus fixtures (ver documents.integration.spec.ts)');
-}
 
 const f = <T>(value: T, confidence = 0.95) => ({ value, confidence });
 const analysis = (over: Partial<DocumentAnalysis> = {}): DocumentAnalysis => ({
@@ -49,7 +41,7 @@ async function classificationsOf(documentId: string) {
 
 describe('AnalysisRecorder', () => {
   it('documento válido: registra la llamada, actualiza el documento y guarda dos predicciones', async () => {
-    const { claimId, documentId } = await seedDocument();
+    const { claimId, documentId } = await seedDocument(ctx.db);
     const out = await recorder.recordDocumentAnalysis(ctx.db, {
       claimId, documentId, provider: 'nvidia', inputRef, result: result(analysis()),
     });
@@ -72,7 +64,7 @@ describe('AnalysisRecorder', () => {
   });
 
   it('SARLAFT sin firma: el documento queda inválido con su motivo y la validez predicha es "invalido"', async () => {
-    const { claimId, documentId } = await seedDocument();
+    const { claimId, documentId } = await seedDocument(ctx.db);
     await recorder.recordDocumentAnalysis(ctx.db, {
       claimId, documentId, provider: 'nvidia', inputRef,
       result: result(analysis({ signed: f<boolean | null>(false) })),
@@ -83,7 +75,7 @@ describe('AnalysisRecorder', () => {
   });
 
   it('un reintento no pisa lo ya analizado ni duplica predicciones, pero la llamada sí queda registrada', async () => {
-    const { claimId, documentId } = await seedDocument();
+    const { claimId, documentId } = await seedDocument(ctx.db);
     await recorder.recordDocumentAnalysis(ctx.db, { claimId, documentId, provider: 'nvidia', inputRef, result: result(analysis()) });
     const second = await recorder.recordDocumentAnalysis(ctx.db, {
       claimId, documentId, provider: 'nvidia', inputRef,
@@ -98,7 +90,7 @@ describe('AnalysisRecorder', () => {
   });
 
   it('un fallo del modelo queda registrado y el documento no cambia', async () => {
-    const { claimId, documentId } = await seedDocument();
+    const { claimId, documentId } = await seedDocument(ctx.db);
     await recorder.recordFailure(ctx.db, {
       claimId, documentId, task: 'analizar_documento', provider: 'nvidia', fallbackModel: 'modelo-x', inputRef,
       error: new LlmError('timeout', 'El modelo no respondió en 120000 ms', { latencyMs: 120000 }),
@@ -110,7 +102,7 @@ describe('AnalysisRecorder', () => {
   });
 
   it('un error que no es del modelo también se registra', async () => {
-    const { claimId, documentId } = await seedDocument();
+    const { claimId, documentId } = await seedDocument(ctx.db);
     await recorder.recordFailure(ctx.db, {
       claimId, documentId, task: 'analizar_documento', provider: 'nvidia', fallbackModel: 'modelo-x', inputRef,
       error: new Error('PDF corrupto'),
@@ -120,7 +112,7 @@ describe('AnalysisRecorder', () => {
   });
 
   it('clasificación de la reclamación: guarda la predicción (sin documento) y devuelve la decisión', async () => {
-    const { claimId } = await seedDocument();
+    const { claimId } = await seedDocument(ctx.db);
     const data: ClaimClassification = { claimType: f('muerte_natural' as const, 0.93), evidence: 'Infarto' };
     const out = await recorder.recordClaimClassification(ctx.db, {
       claimId, provider: 'nvidia', inputRef: { narrativeLength: 40, documentTypes: [] },
@@ -133,7 +125,7 @@ describe('AnalysisRecorder', () => {
   });
 
   it('pregunta 2: una corrección humana se refleja en la tasa de correcciones', async () => {
-    const { claimId, documentId } = await seedDocument();
+    const { claimId, documentId } = await seedDocument(ctx.db);
     await recorder.recordDocumentAnalysis(ctx.db, { claimId, documentId, provider: 'nvidia', inputRef, result: result(analysis()) });
 
     const analyst = await createAnalyst(ctx.db);
