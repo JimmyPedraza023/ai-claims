@@ -6,6 +6,7 @@
 export const AUDIT_EVENTS = {
   RECLAMACION_RECIBIDA: 'reclamacion_recibida',
   ENVIO_DUPLICADO_IGNORADO: 'envio_duplicado_ignorado',
+  COMPLEMENTO_RECIBIDO: 'complemento_recibido',
   DOCUMENTO_RECIBIDO: 'documento_recibido',
   DOCUMENTO_DUPLICADO_IGNORADO: 'documento_duplicado_ignorado',
 } as const;
