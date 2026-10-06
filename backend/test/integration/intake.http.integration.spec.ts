@@ -20,6 +20,7 @@ import { createTestContext, newIdempotencyKey, randomDocument } from './helpers'
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import { TurnstileService } from '../../src/modules/intake/turnstile.service';
+import { SubmissionProcessor } from '../../src/modules/intake/submission-processor';
 
 describe('POST /intake (HTTP real, contra PostgreSQL real)', () => {
   const ctx = createTestContext();
@@ -46,8 +47,12 @@ describe('POST /intake (HTTP real, contra PostgreSQL real)', () => {
       new DocumentsRepository(),
       ctx.audit,
     );
-    const intake = new IntakeService(ctx.db, ctx.claims, documents, ctx.audit, new JobsRepository());
-
+    const intake = new IntakeService(
+      ctx.db,
+      ctx.claims,
+      ctx.audit,
+      new SubmissionProcessor(documents, new JobsRepository()),
+    );
     const moduleRef = await Test.createTestingModule({
       imports: [ThrottlerModule.forRoot({ throttlers: [{ name: 'short', ttl: 60_000, limit: 1000 }] })],
       controllers: [IntakeController],

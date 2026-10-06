@@ -1,3 +1,4 @@
+// backend/src/modules/intake/intake.service.ts
 import { Injectable } from '@nestjs/common';
 import type { IntakeChannel } from '../../common/domain/enums';
 import { DatabaseService } from '../../database/database.service';
@@ -7,12 +8,11 @@ import { AUDIT_EVENTS } from '../audit/event-types';
 import { OpenClaimAlreadyExistsError } from '../claims/claims.errors';
 import { ClaimsService } from '../claims/claims.service';
 import { generateTrackingToken } from '../claims/tracking-token';
-import { DocumentsService } from '../documents/documents.service';
 import type { ReceiveDocumentsResult, UploadedFile } from '../documents/documents.service';
-import { JobsRepository } from '../jobs/jobs.repository';
 import { OpenClaimChangedError } from './intake.errors';
 import { CONSENT_VERSION } from './intake.schema';
 import type { IntakeInput } from './intake.schema';
+import { SubmissionProcessor } from './submission-processor';
 
 export interface IntakeRequest {
   /** Lo fija el servidor según por dónde entró; nunca lo envía el cliente. */
@@ -45,9 +45,8 @@ export class IntakeService {
   constructor(
     private readonly db: DatabaseService,
     private readonly claims: ClaimsService,
-    private readonly documents: DocumentsService,
     private readonly audit: AuditService,
-    private readonly jobs: JobsRepository,
+    private readonly processor: SubmissionProcessor,
   ) {}
 
   async receive(req: IntakeRequest): Promise<IntakeResult> {
@@ -94,7 +93,7 @@ export class IntakeService {
       userAgent: req.userAgent,
     });
 
-    const documents = await this.storeAndQueue(tx, claim.id, submission.id, req.files);
+    const documents = await this.processor.storeAndQueue(tx, claim.id, submission.id, req.files);
     return {
       outcome: 'created',
       claimId: claim.id,
@@ -137,45 +136,12 @@ export class IntakeService {
     });
 
     // El relato del formulario NO reemplaza al original (supuesto 6).
-    const documents = await this.storeAndQueue(tx, claim.id, submission.id, req.files);
+    const documents = await this.processor.storeAndQueue(tx, claim.id, submission.id, req.files);
     return {
       outcome: 'appended',
       claimId: claim.id,
       referenceCode: claim.referenceCode,
       documents,
     };
-  }
-
-  /** Guarda los archivos y deja encolado el trabajo para el modelo. */
-  private async storeAndQueue(
-    tx: Queryable,
-    claimId: string,
-    submissionId: string,
-    files: UploadedFile[],
-  ): Promise<ReceiveDocumentsResult> {
-    const documents = await this.documents.receive(tx, {
-      claimId,
-      submissionId,
-      files,
-      actor: 'beneficiario',
-    });
-
-    for (const doc of documents.stored) {
-      await this.jobs.enqueue(tx, {
-        kind: 'analizar_documento',
-        claimId,
-        documentId: doc.documentId,
-        dedupeKey: `analizar_documento:${doc.documentId}`,
-      });
-    }
-
-    // Un trabajo por envío, aunque no traiga archivos: así un caso que llega solo
-    // con texto también se clasifica y el beneficiario recibe respuesta.
-    await this.jobs.enqueue(tx, {
-      kind: 'clasificar_reclamacion',
-      claimId,
-      dedupeKey: `clasificar_reclamacion:${submissionId}`,
-    });
-    return documents;
   }
 }

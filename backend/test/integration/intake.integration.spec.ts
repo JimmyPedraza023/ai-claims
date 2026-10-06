@@ -16,6 +16,7 @@ import type { IntakeRequest } from '../../src/modules/intake/intake.service';
 import type { IntakeInput } from '../../src/modules/intake/intake.schema';
 import { JobsRepository } from '../../src/modules/jobs/jobs.repository';
 import { createTestContext, newIdempotencyKey, randomDocument } from './helpers';
+import { SubmissionProcessor } from '../../src/modules/intake/submission-processor';
 
 describe('IntakeService (contra PostgreSQL real)', () => {
   const ctx = createTestContext();
@@ -29,7 +30,12 @@ describe('IntakeService (contra PostgreSQL real)', () => {
       new DocumentsRepository(),
       ctx.audit,
     );
-    intake = new IntakeService(ctx.db, ctx.claims, documents, ctx.audit, new JobsRepository());
+    intake = new IntakeService(
+      ctx.db,
+      ctx.claims,
+      ctx.audit,
+      new SubmissionProcessor(documents, new JobsRepository()),
+    );
   });
 
   afterAll(async () => {
