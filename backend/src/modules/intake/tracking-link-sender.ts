@@ -34,6 +34,6 @@ export class DevTrackingLinkSender implements TrackingLinkSender {
       this.logger.warn(`Sin proveedor de correo: no se envió el enlace de ${link.referenceCode}`);
       return;
     }
-    this.logger.log(`[solo desarrollo] ${link.referenceCode}: /seguimiento/${link.token}`);
+        this.logger.log(`[solo desarrollo] ${link.referenceCode}: /seguimiento#${link.token}`);
   }
 }

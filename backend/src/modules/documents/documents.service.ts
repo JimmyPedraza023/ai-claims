@@ -14,6 +14,7 @@ import type { FileStorage } from './file-storage';
 
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 export const MAX_FILES_PER_SUBMISSION = 10;
+import type { DocumentSummary } from './documents.repository';
 
 export interface UploadedFile {
   originalname: string;
@@ -127,5 +128,9 @@ export class DocumentsService {
       }
     }
     return result;
+  }
+
+  listByClaim(client: Queryable, claimId: string): Promise<DocumentSummary[]> {
+    return this.repo.listByClaim(client, claimId);
   }
 }

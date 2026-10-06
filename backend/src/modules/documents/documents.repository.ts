@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Queryable } from '../../database/queryable';
+import type { DocumentIssue, DocumentStatus, DocumentType } from '../../common/domain/enums';
 
 export interface NewDocument {
   claimId: string;
@@ -9,6 +10,14 @@ export interface NewDocument {
   sizeBytes: number;
   sha256: string;
   storagePath: string;
+}
+
+export interface DocumentSummary {
+  id: string;
+  type: DocumentType | null;
+  status: DocumentStatus;
+  issue: DocumentIssue | null;
+  uploadedAt: Date;
 }
 
 @Injectable()
@@ -27,5 +36,27 @@ export class DocumentsRepository {
       [d.claimId, d.submissionId, d.originalFilename, d.mimeType, d.sizeBytes, d.sha256, d.storagePath],
     );
     return rows[0]?.id ?? null;
+  }
+
+  /** Resumen de los documentos de un caso. No incluye ruta, hash ni nombre de archivo. */
+  async listByClaim(client: Queryable, claimId: string): Promise<DocumentSummary[]> {
+    const { rows } = await client.query<{
+      id: string;
+      document_type: DocumentType | null;
+      status: DocumentStatus;
+      issue: DocumentIssue | null;
+      uploaded_at: Date;
+    }>(
+      `SELECT id, document_type, status, issue, uploaded_at
+         FROM documents WHERE claim_id = $1 ORDER BY uploaded_at, id`,
+      [claimId],
+    );
+    return rows.map((r) => ({
+      id: r.id,
+      type: r.document_type,
+      status: r.status,
+      issue: r.issue,
+      uploadedAt: r.uploaded_at,
+    }));
   }
 }

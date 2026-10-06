@@ -177,4 +177,13 @@ export class ClaimsRepository {
     );
     return rows[0] ? mapSubmission(rows[0]) : null;
   }
+
+  /** Busca por el hash del token de seguimiento (en la base nunca está el token). */
+  async findByTrackingTokenHash(client: Queryable, hash: string): Promise<ClaimRecord | null> {
+    const { rows } = await client.query(
+      `SELECT ${CLAIM_COLUMNS} FROM claims WHERE tracking_token_hash = $1`,
+      [hash],
+    );
+    return rows[0] ? mapClaim(rows[0]) : null;
+  }
 }

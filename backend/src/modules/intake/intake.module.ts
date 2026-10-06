@@ -10,11 +10,17 @@ import { DevTrackingLinkSender, TRACKING_LINK_SENDER } from './tracking-link-sen
 import { ThrottlerModule } from '@nestjs/throttler';
 import { intakeThrottlerOptions } from './intake.throttle';
 import { TurnstileService } from './turnstile.service';
+import { TrackingController } from './tracking.controller';
+import { TrackingService } from './tracking.service';
 
 @Module({
   imports: [DatabaseModule, AuditModule, ClaimsModule, DocumentsModule, JobsModule, ThrottlerModule.forRoot(intakeThrottlerOptions)],
-  controllers: [IntakeController],
-  providers: [IntakeService, TurnstileService, { provide: TRACKING_LINK_SENDER, useClass: DevTrackingLinkSender }],
+  controllers: [IntakeController, TrackingController],
+  providers: [IntakeService, 
+              TurnstileService, 
+              TrackingService,
+              { provide: TRACKING_LINK_SENDER, useClass: DevTrackingLinkSender },
+  ],
   exports: [IntakeService],
 })
 export class IntakeModule {}
