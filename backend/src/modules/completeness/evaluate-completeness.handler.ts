@@ -11,6 +11,8 @@ import { computeDeadline } from '../legal-clock/legal-clock';
 import { evaluateCompleteness } from './completeness';
 import { CompletenessEvaluationsRepository } from './completeness-evaluations.repository';
 import { decideStatusChange } from './completeness.transition';
+import { draftBeneficiaryNotice } from '../notifications/notification-drafts';
+import { NotificationsRepository } from '../notifications/notifications.repository';
 
 @Injectable()
 export class EvaluateCompletenessHandler {
@@ -21,6 +23,7 @@ export class EvaluateCompletenessHandler {
     private readonly evaluations: CompletenessEvaluationsRepository,
     private readonly audit: AuditService,
     private readonly jobs: JobsRepository,
+    private readonly notifications: NotificationsRepository,
   ) {}
 
   /** Sin llamadas al modelo: una sola transacción corta que bloquea el caso. */
@@ -81,7 +84,18 @@ export class EvaluateCompletenessHandler {
           payload: { evaluationId, deadlineDate },
         });
       }
-      // Los avisos al beneficiario y al analista salen de aquí en la rama 9 (notificaciones).
+      const draft = draftBeneficiaryNotice(claim.id, result);
+      if (draft) {
+        const notificationId = await this.notifications.insertIfNew(c, {
+          claimId: claim.id, kind: draft.kind, recipient: claim.beneficiaryEmail,
+          subject: draft.subject, body: draft.body, dedupeKey: draft.dedupeKey,
+        });
+        if (notificationId) {
+          await this.jobs.enqueue(c, {
+            kind: 'enviar_aviso', claimId: claim.id, notificationId, dedupeKey: `aviso:${notificationId}`,
+          });
+        }
+      }
     });
   }
 

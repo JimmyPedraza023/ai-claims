@@ -22,7 +22,7 @@ class FakeQueue implements JobQueue {
 }
 
 const job = (attempts: number, maxAttempts = 5): ClaimedJob => ({
-  id: 1, kind: 'analizar_documento', claimId: 'c', documentId: 'd', attempts, maxAttempts,
+  id: 1, kind: 'analizar_documento', claimId: 'c', documentId: 'd', notificationId: null, attempts, maxAttempts,
 });
 
 const logger: RunnerLogger = { info() {}, warn() {}, error() {} };

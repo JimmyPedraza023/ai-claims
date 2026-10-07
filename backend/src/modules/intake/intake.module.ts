@@ -17,6 +17,16 @@ import { TurnstileService } from './turnstile.service';
 import { ComplementController } from './complement.controller';
 import { ComplementService } from './complement.service';
 
+import { ConfigService } from '@nestjs/config';
+import type { Env } from '../../config/env.schema';
+
+import { NotificationsModule } from '../notifications/notification.module';
+import { EMAIL_SENDER } from '../notifications/email-sender';
+import type { EmailSender } from '../notifications/email-sender';
+import { EmailTrackingLinkSender } from '../notifications/email-tracking-link-sender';
+
+import type { TrackingLinkSender } from './tracking-link-sender';
+
 @Module({
   imports: [
     DatabaseModule,
@@ -25,6 +35,7 @@ import { ComplementService } from './complement.service';
     DocumentsModule,
     JobsModule,
     ThrottlerModule.forRoot(intakeThrottlerOptions),
+    NotificationsModule,
   ],
   controllers: [IntakeController, TrackingController, ComplementController],
   providers: [
@@ -33,7 +44,28 @@ import { ComplementService } from './complement.service';
     SubmissionProcessor,
     TrackingService,
     TurnstileService,
-    { provide: TRACKING_LINK_SENDER, useClass: DevTrackingLinkSender },
+    {
+      provide: TRACKING_LINK_SENDER,
+      inject: [ConfigService, EMAIL_SENDER],
+      useFactory: (
+        config: ConfigService<Env, true>,
+        email: EmailSender,
+      ): TrackingLinkSender => {
+        if (!config.get('SMTP_HOST', { infer: true })) {
+          return new DevTrackingLinkSender(config);
+        }
+
+        const frontendUrl = config.get('FRONTEND_URL', { infer: true });
+
+        if (!frontendUrl) {
+          throw new Error(
+            'FRONTEND_URL es obligatoria para enviar el enlace de seguimiento',
+          );
+        }
+
+        return new EmailTrackingLinkSender(email, frontendUrl);
+      },
+    },
   ],
   exports: [IntakeService],
 })

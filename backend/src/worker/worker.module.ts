@@ -17,10 +17,11 @@ import { JobsModule } from '../modules/jobs/jobs.module';
 import { WorkerService } from './worker.service';
 import { CompletenessEvaluationsRepository } from '../modules/completeness/completeness-evaluations.repository';
 import { EvaluateCompletenessHandler } from '../modules/completeness/evaluate-completeness.handler';
+import { NotificationsModule } from '../modules/notifications/notification.module';
 
 /** Todo lo que necesita el proceso del worker. La API no lo carga, así que no necesita la clave del modelo. */
 @Module({
-  imports: [AppConfigModule, AppLoggerModule, DatabaseModule, AuditModule, DocumentsModule, JobsModule, ClassificationModule],
+  imports: [AppConfigModule, AppLoggerModule, DatabaseModule, AuditModule, DocumentsModule, JobsModule, ClassificationModule, NotificationsModule],
   providers: [
     ClaimsRepository,
     {

@@ -13,6 +13,11 @@ const bool = z
   .default('false')
   .transform((v) => v === 'true');
 
+// Una línea vacía en .env cuenta como ausente.
+// Acepta cualquier esquema de Zod (z.url() y z.email() no son ZodString en Zod 4).
+const optionalStr = <T extends z.ZodType>(schema: T) =>
+  z.preprocess((v) => (v === '' ? undefined : v), schema.optional());
+
 export const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -30,16 +35,10 @@ export const envSchema = z
     // Carpeta del almacenamiento local de archivos (en la nube se reemplaza por Supabase Storage).
     STORAGE_DIR: z.string().min(1).default('./data/uploads'),
 
-    IP_HASH_SECRET: z.preprocess(
-      (v) => (v === '' ? undefined : v), // una línea vacía en .env cuenta como ausente
-      z.string().min(16, 'debe tener al menos 16 caracteres').optional(),
-    ),
+    IP_HASH_SECRET: optionalStr(z.string().min(16, 'debe tener al menos 16 caracteres')),
 
-    // Clave secreta de Cloudflare Turnstile (captcha). Sin ella, la verificación se desactiva. 
-    TURNSTILE_SECRET_KEY: z.preprocess(
-      (v) => (v === '' ? undefined : v),
-      z.string().min(1).optional(),
-    ),
+    // Clave secreta de Cloudflare Turnstile (captcha). Sin ella, la verificación se desactiva.
+    TURNSTILE_SECRET_KEY: optionalStr(z.string().min(1)),
 
     // Orígenes permitidos para CORS, separados por coma.
     CORS_ORIGINS: z
@@ -51,12 +50,9 @@ export const envSchema = z
           .map((o) => o.trim())
           .filter(Boolean),
       ),
-    
+
     // --- Modelo de IA y worker (solo los usa el proceso del worker) ---
-    NVIDIA_API_KEY: z.preprocess(
-      (v) => (v === '' ? undefined : v),
-      z.string().min(1).optional(),
-    ),
+    NVIDIA_API_KEY: optionalStr(z.string().min(1)),
     LLM_MODEL: z.string().min(1).default('moonshotai/kimi-k3'),
     // El endpoint gratuito tarda ~50 s por llamada.
     LLM_TIMEOUT_MS: z.coerce.number().int().min(1000).default(120_000),
@@ -68,30 +64,51 @@ export const envSchema = z
     JOB_TIMEOUT_MS: z.coerce.number().int().min(1000).default(150_000),
     // Debe superar JOB_TIMEOUT_MS: si no, otro worker tomaría un trabajo aún en curso.
     JOB_LEASE_SECONDS: z.coerce.number().int().min(10).default(210),
-
     // Modelo para tareas de solo texto (clasificar). Si no se define, se usa LLM_MODEL.
-    LLM_TEXT_MODEL: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(1).optional()),
+    LLM_TEXT_MODEL: optionalStr(z.string().min(1)),
+
+    // --- Correo (SMTP) y avisos ---
+    SMTP_HOST: optionalStr(z.string().min(1)),
+    SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
+    SMTP_SECURE: bool, // true para el puerto 465
+    SMTP_USER: optionalStr(z.string().min(1)),
+    SMTP_PASS: optionalStr(z.string().min(1)),
+    MAIL_FROM: optionalStr(z.string().min(3)),
+    FRONTEND_URL: optionalStr(z.url()), // base del enlace de seguimiento
+    ANALYST_ALERT_EMAIL: optionalStr(z.email()),
+
+    // --- Vigilancia del reloj ---
+    CLOCK_WATCH_SECRET: optionalStr(z.string().min(32, 'debe tener al menos 32 caracteres')),
+    CLOCK_WATCH_PING_URL: optionalStr(z.url()),
   })
   .superRefine((env, ctx) => {
-    if (env.NODE_ENV === 'production' && env.CORS_ORIGINS.length === 0) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['CORS_ORIGINS'],
-        message: 'es obligatoria en producción',
-      });
+    if (env.NODE_ENV === 'production') {
+      if (env.CORS_ORIGINS.length === 0) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['CORS_ORIGINS'],
+          message: 'es obligatoria en producción',
+        });
+      }
+      for (const key of [
+        'IP_HASH_SECRET',
+        'TURNSTILE_SECRET_KEY',
+        'SMTP_HOST',
+        'MAIL_FROM',
+        'FRONTEND_URL',
+        'ANALYST_ALERT_EMAIL',
+        'CLOCK_WATCH_SECRET',
+      ] as const) {
+        if (!env[key]) {
+          ctx.addIssue({ code: 'custom', path: [key], message: 'es obligatoria en producción' });
+        }
+      }
     }
-    if (env.NODE_ENV === 'production' && !env.IP_HASH_SECRET) {
+    if (env.SMTP_USER && !env.SMTP_PASS) {
       ctx.addIssue({
         code: 'custom',
-        path: ['IP_HASH_SECRET'],
-        message: 'es obligatoria en producción',
-      });
-    }
-    if (env.NODE_ENV === 'production' && !env.TURNSTILE_SECRET_KEY) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['TURNSTILE_SECRET_KEY'],
-        message: 'es obligatoria en producción',
+        path: ['SMTP_PASS'],
+        message: 'es obligatoria si se define SMTP_USER',
       });
     }
     if (env.JOB_TIMEOUT_MS <= env.LLM_TIMEOUT_MS) {

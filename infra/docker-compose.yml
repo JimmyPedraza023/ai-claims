@@ -9,5 +9,11 @@ services:
       - "5433:5432"   # 5433 por si ya tienes un Postgres local en 5432
     volumes:
       - pgdata:/var/lib/postgresql/data
+  mailpit:
+    image: axllent/mailpit
+    container_name: infra-mailpit-1
+    ports:
+      - "1025:1025"   # SMTP para el backend
+      - "8025:8025"   # UI de recepción de correos
 volumes:
   pgdata:

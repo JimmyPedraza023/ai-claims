@@ -16,6 +16,10 @@ export const AUDIT_EVENTS = {
   CLASIFICACION_FALLIDA: 'clasificacion_fallida',
   EXPEDIENTE_EVALUADO: 'expediente_evaluado',
   EXPEDIENTE_COMPLETO: 'expediente_completo',
+  AVISO_ENVIADO: 'aviso_enviado',
+  AVISO_FALLIDO: 'aviso_fallido',
+  RELOJ_EN_RIESGO: 'reloj_en_riesgo',
+  RELOJ_VENCIDO: 'reloj_vencido',
 } as const;
 
 export type AuditEventType = (typeof AUDIT_EVENTS)[keyof typeof AUDIT_EVENTS];

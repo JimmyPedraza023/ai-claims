@@ -1,8 +1,8 @@
 # Supuestos y preguntas para la compañía
 
-> Prueba técnica AIX (Vacante 631). Última actualización: martes 6 de octubre de 2026, al cierre de la rama 8 (modelo, worker y reloj).
+> Prueba técnica AIX (Vacante 631). Última actualización: miércoles 7 de octubre de 2026, al cierre de la rama 9 (notificaciones y vigilancia del reloj).
 
-El enunciado está incompleto a propósito. Este documento registra, para cada hueco: qué se asumió, **qué cambia en la solución si la suposición resulta falsa** y qué se le preguntaría a la compañía. Los supuestos 1 a 9 vienen de la planificación inicial; del 10 al 26 surgieron al construir el canal de radicación y del 27 en adelante, al construir el modelo, el worker y el reloj.
+El enunciado está incompleto a propósito. Este documento registra, para cada hueco: qué se asumió, **qué cambia en la solución si la suposición resulta falsa** y qué se le preguntaría a la compañía. Los supuestos 1 a 9 vienen de la planificación inicial; del 10 al 26 surgieron al construir el canal de radicación, del 27 al 33 al construir el modelo, el worker y el reloj, y del 34 en adelante, al construir el canal de notificaciones y la vigilancia del plazo.
 
 ## Cómo leerlo
 
@@ -114,7 +114,7 @@ Ordenadas por impacto. Hay un texto listo para enviar al final del documento.
 
 ### 15. El token de seguimiento es la credencial; el enlace lo entrega el correo
 - **Supuesto:** el beneficiario no crea cuenta. Al radicar se genera un token aleatorio de 256 bits; en la base solo se guarda su hash. El token viaja en una cabecera (`x-tracking-token`), **nunca en la URL**, porque las URL quedan en los logs. El enlace que recibe la persona lleva el token en el fragmento (`/seguimiento#<token>`), que el navegador no envía a ningún servidor.
-- **Entrega:** por correo al beneficiario (rama de notificaciones). Hasta entonces, un componente intercambiable lo escribe en el log en desarrollo y no entrega nada en producción.
+- **Entrega:** por correo al beneficiario. En desarrollo lo captura Mailpit (http://localhost:8025); en producción, SMTP (`SmtpEmailSender`). El envío se intenta una sola vez al radicar (#34): el flujo de «reenviar mi enlace», que rota el token, es el camino de recuperación si se pierde o falló el envío.
 - **Si es falso:** cambiar de canal de entrega es cambiar una implementación; el resto no se toca.
 - **Estado:** Decidido · **Respuesta:** —
 
@@ -234,11 +234,43 @@ Ordenadas por impacto. Hay un texto listo para enviar al final del documento.
 
 ---
 
+## G. Notificaciones y vigilancia del plazo
+
+### 34. El enlace de seguimiento se intenta una sola vez, al radicar
+- **Supuesto:** entregar el enlace es una tarea en segundo plano del propio flujo de radicación (`EmailTrackingLinkSender`, que envía el correo y registra el aviso). Si el envío falla no se reintenta automáticamente: el flujo de «reenviar mi enlace» con rotación del token (#16) es el único camino de recuperación.
+- **Si es falso:** darle al enlace la misma cola de reintentos de `enviar_aviso`.
+- **Estado:** Decidido · **Respuesta:** —
+
+### 35. El correo se entrega «al menos una vez»
+- **Supuesto:** el envío y el registro de «enviada» no son atómicos (se envía primero y se marca después, sin transacción abierta, igual que con el modelo). Si el proceso muere entre los dos, un reintento podría entregar el correo dos veces. Los `dedupe_key` evitan avisos duplicados, pero no cubren este hueco.
+- **Si es falso:** registrar el mensaje antes de enviarlo y usar idempotencia del proveedor.
+- **Estado:** Riesgo aceptado · **Respuesta:** —
+
+### 36. No se avisa «falta X» mientras un documento se analiza o una persona lo revisa
+- **Supuesto:** `draftBeneficiaryNotice` devuelve `null` si hay documentos pendientes de análisis o en revisión humana, así que el aviso no afirma que «falta» algo que podría estar en tránsito o en revisión (precisa el #31).
+- **Si es falso:** se quitara esa condición; los requisitos en revisión se mostrarían por su estado.
+- **Estado:** Decidido · **Respuesta:** —
+
+### 37. Las alertas internas del reloj van a un único buzón
+- **Supuesto:** mientras no exista el panel con roles (rama 10), las alertas de riesgo y vencimiento del reloj se envían a `ANALYST_ALERT_EMAIL` (un correo de analistas), con `audience = 'analistas'`.
+- **Si es falso:** el cambio es el destinatario (un grupo, un Slack interno o el panel); la vigilancia y la deduplicación no cambian.
+- **Estado:** Decidido · **Respuesta:** —
+
+### 38. La vigilancia del reloj es de mejor esfuerzo
+- **Supuesto:** un workflow programado dispara `POST /internal/clock-watch` con periodicidad horaria. Cada corrida calcula el día del plazo al vuelo (`fn_claim_clock`), así que una corrida que no llegue a terminar la recupera la siguiente; no se acumula deuda. El latido externo (`CLOCK_WATCH_PING_URL`, opcional) avisa si el workflow deja de correr.
+- **Si es falso:** cambia el operador (un cron de la nube, el propio worker), no la vigilancia.
+- **Estado:** Decidido · **Respuesta:** —
+
+---
+
 ## Fuera de alcance y límites conocidos
 
 - Un solo canal de radicación (web); sin WhatsApp ni Telegram.
 - Sin antivirus de archivos (#24) y sin soporte de HEIC (#8).
-- El enlace de seguimiento solo se entrega al crear el caso; el flujo de reenvío con rotación del token está pendiente (#16).
+- El enlace de seguimiento solo se entrega al crear el caso; el flujo de reenvío con rotación del token está pendiente (#16), y un envío fallido no se reintenta solo (#34).
+- Los correos al beneficiario son texto simple, sin formato; la entrega es «al menos una vez» (#35), así que un fallo entre envío y registro puede duplicar.
+- Las alertas internas del reloj van a un único buzón hasta que exista el panel con roles (#37).
+- La vigilancia del reloj es de mejor esfuerzo, con latido externo opcional (#38).
 - El contador de límites por IP vive en memoria (#22).
 - Los archivos se guardan dentro de la transacción de radicación. Con almacenamiento local es rápido; con almacenamiento remoto, lo mejor sería guardarlos antes de abrir la transacción, y quedarían archivos huérfanos si se revierte (inofensivos: la ruta es el hash).
 - La diferencia de tiempo entre un caso nuevo y uno anexado podría delatar si existe un caso (#16).
