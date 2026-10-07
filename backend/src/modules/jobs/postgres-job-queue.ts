@@ -9,10 +9,13 @@ export class PostgresJobQueue implements JobQueue {
     private readonly repo: JobsRepository,
     private readonly leaseSeconds: number,
     private readonly kinds?: JobKind[],
+    private readonly onlyClaimId?: string,
   ) {}
 
   claimNext(workerId: string): Promise<ClaimedJob | null> {
-    return this.repo.claimNext(this.db, workerId, { leaseSeconds: this.leaseSeconds, kinds: this.kinds });
+    return this.repo.claimNext(this.db, workerId, {
+      leaseSeconds: this.leaseSeconds, kinds: this.kinds, onlyClaimId: this.onlyClaimId,
+    });
   }
   complete(jobId: number, workerId: string) {
     return this.repo.complete(this.db, jobId, workerId);
@@ -24,6 +27,6 @@ export class PostgresJobQueue implements JobQueue {
     return this.repo.failPermanently(this.db, jobId, workerId, error);
   }
   sweep() {
-    return this.repo.failExhausted(this.db, { leaseSeconds: this.leaseSeconds });
+    return this.repo.failExhausted(this.db, { leaseSeconds: this.leaseSeconds, onlyClaimId: this.onlyClaimId });
   }
 }

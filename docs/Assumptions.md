@@ -1,8 +1,8 @@
 # Supuestos y preguntas para la compañía
 
-> Prueba técnica AIX (Vacante 631). Última actualización: martes 6 de octubre de 2026, al cierre de la rama 7 (canal de radicación).
+> Prueba técnica AIX (Vacante 631). Última actualización: martes 6 de octubre de 2026, al cierre de la rama 8 (modelo, worker y reloj).
 
-El enunciado está incompleto a propósito. Este documento registra, para cada hueco: qué se asumió, **qué cambia en la solución si la suposición resulta falsa** y qué se le preguntaría a la compañía. Los supuestos 1 a 9 vienen de la planificación inicial; del 10 en adelante surgieron al construir el canal de radicación.
+El enunciado está incompleto a propósito. Este documento registra, para cada hueco: qué se asumió, **qué cambia en la solución si la suposición resulta falsa** y qué se le preguntaría a la compañía. Los supuestos 1 a 9 vienen de la planificación inicial; del 10 al 26 surgieron al construir el canal de radicación y del 27 en adelante, al construir el modelo, el worker y el reloj.
 
 ## Cómo leerlo
 
@@ -187,7 +187,50 @@ Ordenadas por impacto. Hay un texto listo para enviar al final del documento.
 
 ### 26. El modelo no decide la completitud ni muestra un tipo dudoso al beneficiario
 - **Decisión:** la completitud la decide una función pura del código, nunca el modelo. El tipo de reclamación (`claims.claim_type`) determina la lista de requisitos que ve el beneficiario, así que solo se escribe cuando el modelo tiene confianza alta o cuando una persona lo confirma. Si el modelo duda, el tipo queda vacío, el beneficiario ve «estamos revisando» y el caso aparece para revisión humana. Mostrar una lista equivocada a alguien que acaba de perder a un familiar es peor que no mostrar nada todavía.
-- **Estado:** Decidido (se implementa en la rama del worker) · **Respuesta:** —
+- **Estado:** Decidido (implementado en la rama 8, con el invariante de que ninguna confianza bajo su umbral produce un veredicto firme) · **Respuesta:** —
+
+---
+
+## F. IA, documentos y reloj
+
+### 27. Los documentos y los nombres se envían a un proveedor de IA de terceros
+- **Supuesto:** para la prueba se usa el endpoint gratuito de NVIDIA. Se envían las imágenes del documento y el nombre y número de documento del asegurado y del beneficiario, para que el modelo juzgue, por ejemplo, si una cédula corresponde al asegurado. Todos los datos de la prueba son sintéticos (#25). El razonamiento interno del modelo no se lee ni se guarda.
+- **Si es falso:** en producción hace falta un proveedor con contrato, residencia de datos y política de retención aprobados (en Azure, Azure OpenAI). Cambiarlo es una implementación de `LlmProvider`; el resto no se toca.
+- **Pregunta:** ¿qué proveedores y regiones de datos están aprobados para procesar documentos de beneficiarios?
+- **Estado:** Por confirmar · **Respuesta:** —
+
+### 28. Al modelo se le envían como máximo 4 páginas por documento
+- **Supuesto:** todo documento llega al modelo como imágenes: cada PDF se dibuja página por página (máximo 4, lado mayor de 1600 px) y cada foto se reduce al mismo tamaño. Si el PDF tiene más páginas, el documento va a revisión humana y **nunca** queda válido ni inválido por omisión: la firma podría estar en una página que no se vio. Una imagen de prueba costó ≈ 16.800 tokens de entrada, y por eso el tamaño y el número de páginas tienen tope.
+- **Si es falso:** es una constante; más páginas significan más tokens y más latencia.
+- **Límite conocido:** el PDF se dibuja dentro del proceso del worker. El tiempo máximo del trabajo abandona la espera pero no detiene un dibujo colgado; el siguiente paso sería un hilo o un proceso aparte.
+- **Pregunta:** ¿cuántas páginas tiene normalmente un expediente?
+- **Estado:** Decidido · **Respuesta:** —
+
+### 29. Los umbrales de confianza son valores iniciales
+- **Supuesto:** documento 0,8 · legibilidad 0,7 · firma 0,8 · coincidencia con el asegurado 0,8 · tipo de reclamación 0,85. Con una confianza bajo el umbral, el veredicto es «revisión humana», nunca «inválido». La confianza que reporta el modelo no está calibrada: en las pruebas se agrupa en 0,85 a 0,95.
+- **Si es falso:** son constantes en `classification.policy.ts` con su `POLICY_VERSION`. Se recalibran con la tasa de correcciones de las personas, y de nuevo cada vez que cambie el modelo o el prompt.
+- **Estado:** Decidido (se calibra con datos) · **Respuesta:** —
+
+### 30. Solo se exige firma al SARLAFT y solo se contrasta la cédula del asegurado
+- **Supuesto:** el enunciado exige «SARLAFT firmado», así que solo ese documento se rechaza por falta de firma. La cédula del beneficiario solo se valida por legibilidad: el motivo `no_corresponde_beneficiario` existe en el dominio, pero hoy no se produce. Un formato de reclamación o una certificación bancaria sin firma no se rechazan.
+- **Si es falso:** agregar otro documento al conjunto que exige firma es una línea; contrastar la cédula del beneficiario es agregar `matchesBeneficiary` al esquema del modelo y una comprobación en la política.
+- **Pregunta:** ¿qué documentos deben ir firmados, además del SARLAFT? ¿Debe contrastarse la cédula del beneficiario con quien radica?
+- **Estado:** Por confirmar · **Respuesta:** —
+
+### 31. Un documento de tipo incierto, «otro» o dañado va a una persona y no cuenta
+- **Supuesto:** si el modelo no sabe de qué documento se trata, o es de un tipo que el expediente no exige, el documento se conserva, queda para revisión humana y no cuenta para ningún requisito (precisa el #11). Un archivo corrupto o con contraseña recibe el motivo `archivo_danado`, sin llamar al modelo ni reintentar. Mientras una persona lo revisa, la página de seguimiento no afirma que «falta» un documento: dice que se está revisando.
+- **Si es falso:** se pueden agregar avisos específicos al beneficiario («no pudimos abrir tu archivo»). Hoy no hay un mensaje propio para `archivo_danado`; lo agrega la rama de notificaciones.
+- **Estado:** Decidido · **Respuesta:** —
+
+### 32. Con el expediente completo no se reevalúa, y el reloj usa la hora de la base de datos
+- **Supuesto:** una vez el caso está `completa`, no se evalúa hacia atrás: un documento posterior se guarda y se audita, pero no cambia el estado ni el plazo. El instante `completed_at` lo toma la base de datos (`clock_timestamp()`) y no el servidor donde corre el worker; la fecha límite sale de la misma función pura que se verificó contra PostgreSQL.
+- **Si es falso:** está ligado a los #3 y #18. Suspender o reabrir un plazo exige una tabla de pausas y una migración.
+- **Estado:** Por confirmar (junto con el #3) · **Respuesta:** —
+
+### 33. Si el modelo falla, el documento pasa a una persona; el tipo ambiguo se reclasifica una sola vez
+- **Supuesto:** cada trabajo se intenta hasta 5 veces, con espera creciente (30 s, 60 s, 120 s…, y al menos 60 s tras un límite de peticiones). Tras el último intento, el documento pasa a `requiere_revision` y el caso queda visible: nada se queda «pendiente» para siempre. Un caso sin tipo se reclasifica **una sola vez** cuando todos sus documentos ya están analizados (un informe de policía puede resolver lo que el relato no); si sigue ambiguo, lo decide una persona.
+- **Si es falso:** el número de intentos y la espera son configuración; reclasificar más veces es cambiar la llave de deduplicación.
+- **Estado:** Decidido · **Respuesta:** —
 
 ---
 
@@ -201,6 +244,11 @@ Ordenadas por impacto. Hay un texto listo para enviar al final del documento.
 - La diferencia de tiempo entre un caso nuevo y uno anexado podría delatar si existe un caso (#16).
 - Los correos al beneficiario son texto simple, sin formato.
 - No hay retención automática de documentos (#9).
+- La visión se probó con una sola imagen; falta compararla con documentos sintéticos (firma ausente, cédula de otra persona).
+- La cédula del beneficiario solo se valida por legibilidad (#30).
+- El PDF se dibuja en el mismo proceso del worker (#28).
+- El proveedor de IA gratuito no ofrece garantías: su latencia varía con la carga y a veces corta la respuesta (#27).
+- Un caso con el expediente completo no se reevalúa (#32).
 
 ---
 
