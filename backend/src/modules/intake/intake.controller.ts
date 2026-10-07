@@ -28,6 +28,7 @@ import type { IntakeResult } from './intake.service';
 import { TRACKING_LINK_SENDER } from './tracking-link-sender';
 import type { TrackingLinkSender } from './tracking-link-sender';
 import { TurnstileGuard } from './turnstile.guard';
+import { EmailError } from '../notifications/email-sender';
 
 /**
  * Misma respuesta para caso nuevo, anexado y duplicado: no se puede averiguar
@@ -84,18 +85,21 @@ export class IntakeController {
     // El enlace solo existe cuando el caso es nuevo. Si falla la entrega, la
     // radicación ya está guardada: se registra el error (sin el token) y se responde igual.
     if (result.outcome === 'created') {
-      try {
-        await this.trackingLinks.send({
+      void this.trackingLinks
+        .send({
           claimId: result.claimId,
           referenceCode: result.referenceCode,
           email: normalizeEmail(form.beneficiaryEmail),
           token: result.trackingToken,
+        })
+        .catch((err: unknown) => {
+          // Solo un código: los errores de SMTP pueden traer el correo del destinatario.
+          this.logger.error({
+            msg: 'No se pudo enviar el enlace de seguimiento',
+            referenceCode: result.referenceCode,
+            error: err instanceof EmailError ? err.message : 'envio_fallido',
+          });
         });
-      } catch (err) {
-        this.logger.error(
-          `No se pudo entregar el enlace de ${result.referenceCode}: ${err instanceof Error ? err.message : 'error desconocido'}`,
-        );
-      }
     }
 
     return { message: RECEIVED_MESSAGE };

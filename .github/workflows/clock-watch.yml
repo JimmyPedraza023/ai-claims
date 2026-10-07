@@ -1,0 +1,16 @@
+# .github/workflows/clock-watch.yml
+name: clock-watch
+on:
+  schedule: [{ cron: '7 * * * *' }]   # cada hora; evita el minuto 0, que se congestiona
+  workflow_dispatch:
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Vigilar el reloj
+        run: |
+          curl --fail-with-body --silent --show-error --max-time 120 --retry 3 --retry-all-errors \
+            -X POST "${{ secrets.API_URL }}/internal/clock-watch" \
+            -H "x-clock-watch-secret: ${{ secrets.CLOCK_WATCH_SECRET }}" \
+            | tee result.json
+          jq -e '.failed == 0' result.json

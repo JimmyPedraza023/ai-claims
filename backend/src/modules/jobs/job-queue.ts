@@ -1,4 +1,4 @@
-export type JobKind = 'analizar_documento' | 'clasificar_reclamacion' | 'evaluar_completitud';
+export type JobKind = 'analizar_documento' | 'clasificar_reclamacion' | 'evaluar_completitud' | 'enviar_aviso';
 
 export interface ClaimedJob {
   id: number;
@@ -8,6 +8,7 @@ export interface ClaimedJob {
   /** Ya incluye este intento: la primera vez vale 1. */
   attempts: number;
   maxAttempts: number;
+  notificationId: string | null;
 }
 
 /** Lo que el runner necesita de la cola. Sin Nest ni base de datos: se prueba con una cola falsa. */

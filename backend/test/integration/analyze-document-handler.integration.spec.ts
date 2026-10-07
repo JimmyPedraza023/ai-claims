@@ -41,7 +41,7 @@ function build(opts: { llm?: FakeLlmProvider; preparer?: DocumentPreparer } = {}
 }
 
 const job = (claimId: string, documentId: string, over: Partial<ClaimedJob> = {}): ClaimedJob => ({
-  id: 1, kind: 'analizar_documento', claimId, documentId, attempts: 1, maxAttempts: 5, ...over,
+  id: 1, kind: 'analizar_documento', claimId, documentId, notificationId: null, attempts: 1, maxAttempts: 5, ...over,
 });
 const signal = () => new AbortController().signal;
 

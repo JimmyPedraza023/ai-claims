@@ -29,7 +29,7 @@ const fake = (value: ClaimClassification['claimType']['value'], confidence?: num
   new FakeLlmProvider({ classifyClaim: () => classification(value, confidence) });
 
 const job = (claimId: string, over: Partial<ClaimedJob> = {}): ClaimedJob => ({
-  id: 1, kind: 'clasificar_reclamacion', claimId, documentId: null, attempts: 1, maxAttempts: 5, ...over,
+  id: 1, kind: 'clasificar_reclamacion', claimId, documentId: null, notificationId: null, attempts: 1, maxAttempts: 5, ...over,
 });
 const signal = () => new AbortController().signal;
 

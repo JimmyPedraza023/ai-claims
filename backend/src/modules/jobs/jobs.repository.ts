@@ -8,6 +8,8 @@ export interface NewJob {
   kind: JobKind;
   claimId: string;
   documentId?: string | null;
+  /** Obligatorio (y único valor válido) cuando kind es 'enviar_aviso'. */
+  notificationId?: string | null;
   /** Llave única: encolar dos veces el mismo trabajo no lo duplica. */
   dedupeKey: string;
 }
@@ -26,6 +28,7 @@ interface JobRow {
   kind: JobKind;
   claim_id: string;
   document_id: string | null;
+  notification_id: string | null;
   attempts: number;
   max_attempts: number;
 }
@@ -35,6 +38,7 @@ const mapJob = (r: JobRow): ClaimedJob => ({
   kind: r.kind,
   claimId: r.claim_id,
   documentId: r.document_id,
+  notificationId: r.notification_id,
   attempts: r.attempts,
   maxAttempts: r.max_attempts,
 });
@@ -48,10 +52,10 @@ export class JobsRepository {
   /** Devuelve false si ya existía un trabajo con esa dedupeKey. */
   async enqueue(client: Queryable, job: NewJob): Promise<boolean> {
     const { rowCount } = await client.query(
-      `INSERT INTO jobs (kind, claim_id, document_id, dedupe_key)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO jobs (kind, claim_id, document_id, notification_id, dedupe_key)
+       VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (dedupe_key) DO NOTHING`,
-      [job.kind, job.claimId, job.documentId ?? null, job.dedupeKey],
+      [job.kind, job.claimId, job.documentId ?? null, job.notificationId ?? null, job.dedupeKey],
     );
     return rowCount === 1;
   }
@@ -77,7 +81,7 @@ export class JobsRepository {
            FOR UPDATE SKIP LOCKED
            LIMIT 1
         )
-        RETURNING id, kind, claim_id, document_id, attempts, max_attempts`,
+        RETURNING id, kind, claim_id, document_id, notification_id, attempts, max_attempts`,
       [
         workerId,
         opts.leaseSeconds,

@@ -37,6 +37,11 @@ describe('validateEnv', () => {
     CORS_ORIGINS: 'https://app.com',
     IP_HASH_SECRET: 'x'.repeat(32),
     TURNSTILE_SECRET_KEY: 'clave-de-pruebas',
+    SMTP_HOST: 'smtp.example.com',
+    MAIL_FROM: 'avisos@example.com',
+    FRONTEND_URL: 'https://app.example.com',
+    ANALYST_ALERT_EMAIL: 'analistas@example.com',
+    CLOCK_WATCH_SECRET: 'x'.repeat(32),
   };
 
   it('exige CORS_ORIGINS en producción', () => {

@@ -18,6 +18,9 @@ import type { FileStorage } from '../../src/modules/documents/file-storage';
 import { JobRunner, type JobHandlers, type RunnerLogger } from '../../src/modules/jobs/job-runner';
 import { JobsRepository } from '../../src/modules/jobs/jobs.repository';
 import { PostgresJobQueue } from '../../src/modules/jobs/postgres-job-queue';
+import { NotificationsRepository } from '../../src/modules/notifications/notifications.repository';
+import { SendNotificationHandler } from '../../src/modules/notifications/send-notification.handler';
+import type { EmailSender } from '../../src/modules/notifications/email-sender';
 import { computeDeadline } from '../../src/modules/legal-clock/legal-clock';
 
 /**
@@ -96,12 +99,17 @@ function buildRunner(llm: FakeLlmProvider, claimId: string): JobRunner {
   const analyze = new AnalyzeDocumentHandler(ctx.db, claims, documents, storage, preparer, llm, recorder, ctx.audit, jobsRepo);
   const classify = new ClassifyClaimHandler(ctx.db, claims, documents, llm, recorder, ctx.audit, jobsRepo);
   const evaluate = new EvaluateCompletenessHandler(
-    ctx.db, claims, documents, new CompletenessEvaluationsRepository(), ctx.audit, jobsRepo,
+    ctx.db, claims, documents, new CompletenessEvaluationsRepository(), ctx.audit, jobsRepo, new NotificationsRepository(),
   );
+  // El correo no sale en pruebas: se registra en memoria y el aviso queda enviado.
+  const sentEmail: Array<{ to: string; subject: string; text: string }> = [];
+  const sender: EmailSender = { send: async (m) => { sentEmail.push({ to: m.to, subject: m.subject, text: m.text }); } };
+  const sendNotice = new SendNotificationHandler(ctx.db, new NotificationsRepository(), ctx.audit, sender);
   const handlers: JobHandlers = {
     analizar_documento: (job, signal) => analyze.execute(job, signal),
     clasificar_reclamacion: (job, signal) => classify.execute(job, signal),
     evaluar_completitud: (job) => evaluate.execute(job),
+    enviar_aviso: (job) => sendNotice.execute(job),
   };
   // La misma cola de producción, limitada a un caso para no tocar trabajos de otras pruebas.
   const queue = new PostgresJobQueue(ctx.db, jobsRepo, 30, undefined, claimId);

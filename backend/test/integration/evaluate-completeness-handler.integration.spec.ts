@@ -8,6 +8,7 @@ import { EvaluateCompletenessHandler } from '../../src/modules/completeness/eval
 import { DocumentsRepository } from '../../src/modules/documents/documents.repository';
 import type { ClaimedJob } from '../../src/modules/jobs/job-queue';
 import { JobsRepository } from '../../src/modules/jobs/jobs.repository';
+import { NotificationsRepository } from '../../src/modules/notifications/notifications.repository';
 import { computeDeadline } from '../../src/modules/legal-clock/legal-clock';
 
 const ctx = createTestContext();
@@ -16,11 +17,11 @@ afterAll(async () => {
 });
 
 const handler = new EvaluateCompletenessHandler(
-  ctx.db, new ClaimsRepository(), new DocumentsRepository(), new CompletenessEvaluationsRepository(), ctx.audit, new JobsRepository(),
+  ctx.db, new ClaimsRepository(), new DocumentsRepository(), new CompletenessEvaluationsRepository(), ctx.audit, new JobsRepository(), new NotificationsRepository(),
 );
 const REQUIRED = REQUIRED_DOCUMENTS.muerte_natural;
 const job = (claimId: string): ClaimedJob => ({
-  id: 1, kind: 'evaluar_completitud', claimId, documentId: null, attempts: 1, maxAttempts: 5,
+  id: 1, kind: 'evaluar_completitud', claimId, documentId: null, notificationId: null, attempts: 1, maxAttempts: 5,
 });
 
 /** Caso con tipo (o sin él) y su primer documento en el estado indicado. */

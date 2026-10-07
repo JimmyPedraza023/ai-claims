@@ -12,6 +12,7 @@ import { JobsRepository } from '../modules/jobs/jobs.repository';
 import { PostgresJobQueue } from '../modules/jobs/postgres-job-queue';
 import { NestRunnerLogger } from './nest-runner-logger';
 import { EvaluateCompletenessHandler } from '../modules/completeness/evaluate-completeness.handler';
+import { SendNotificationHandler } from '../modules/notifications/send-notification.handler';
 
 @Injectable()
 export class WorkerService {
@@ -24,6 +25,7 @@ export class WorkerService {
     private readonly analyze: AnalyzeDocumentHandler,
     private readonly classify: ClassifyClaimHandler,
     private readonly evaluate: EvaluateCompletenessHandler,
+    private readonly sendNotice: SendNotificationHandler,
   ) {}
 
   /** Corre hasta que se cancela la señal. Los trabajos en curso terminan antes de salir. */
@@ -32,6 +34,7 @@ export class WorkerService {
       analizar_documento: (job, s) => this.analyze.execute(job, s),
       clasificar_reclamacion: (job, s) => this.classify.execute(job, s),
       evaluar_completitud: (job) => this.evaluate.execute(job),
+      enviar_aviso: (job) => this.sendNotice.execute(job),
     };
     const kinds = Object.keys(handlers) as JobKind[];
     const get = <K extends keyof Env>(key: K) => this.config.get(key, { infer: true });
