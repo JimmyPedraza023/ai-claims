@@ -105,4 +105,11 @@ describe('cola de trabajos', () => {
     expect(await jobs.failPermanently(ctx.db, job.id, A, 'bad_request: clave inválida')).toBe(true);
     expect(await row(job.id)).toMatchObject({ status: 'fallido', last_error: 'bad_request: clave inválida' });
   });
+
+  it('un worker solo toma los tipos de trabajo que sabe manejar', async () => {
+    const claimId = await newJob(); // trabajo de tipo analizar_documento
+    const base = { leaseSeconds: 180, onlyClaimId: claimId };
+    expect(await jobs.claimNext(ctx.db, A, { ...base, kinds: ['evaluar_completitud'] })).toBeNull();
+    expect(await jobs.claimNext(ctx.db, A, { ...base, kinds: ['analizar_documento'] })).not.toBeNull();
+  });
 });

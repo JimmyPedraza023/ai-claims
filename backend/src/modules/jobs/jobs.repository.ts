@@ -17,6 +17,8 @@ export interface ClaimOptions {
   leaseSeconds: number;
   /** Solo para pruebas o reprocesos de un caso concreto. */
   onlyClaimId?: string;
+  /** Tipos que este worker sabe manejar. Los demás se dejan intactos. */
+  kinds?: JobKind[];
 }
 
 interface JobRow {
@@ -70,12 +72,18 @@ export class JobsRepository {
                     AND locked_at < now() - make_interval(secs => $2)
                     AND attempts < max_attempts) )
              AND ($3::uuid IS NULL OR claim_id = $3::uuid)
+             AND ($4::text[] IS NULL OR kind = ANY($4::text[]))
            ORDER BY run_at, id
            FOR UPDATE SKIP LOCKED
            LIMIT 1
         )
         RETURNING id, kind, claim_id, document_id, attempts, max_attempts`,
-      [workerId, opts.leaseSeconds, opts.onlyClaimId ?? null],
+      [
+        workerId,
+        opts.leaseSeconds,
+        opts.onlyClaimId ?? null,
+        opts.kinds ?? null,
+      ],
     );
     return rows[0] ? mapJob(rows[0]) : null;
   }

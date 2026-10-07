@@ -1,5 +1,6 @@
 import { JobRunner, type JobHandlers, type RunnerLogger } from './job-runner';
-import type { ClaimedJob, JobQueue } from './job-queue';
+import { isFinalFailure, type ClaimedJob, JobQueue } from './job-queue';
+
 
 class FakeQueue implements JobQueue {
   readonly completed: number[] = [];
@@ -20,8 +21,8 @@ class FakeQueue implements JobQueue {
   async sweep() { this.sweeps++; return 0; }
 }
 
-const job = (over: Partial<ClaimedJob> = {}): ClaimedJob => ({
-  id: 1, kind: 'analizar_documento', claimId: 'c1', documentId: 'd1', attempts: 1, maxAttempts: 5, ...over,
+const job = (attempts: number, maxAttempts = 5): ClaimedJob => ({
+  id: 1, kind: 'analizar_documento', claimId: 'c', documentId: 'd', attempts, maxAttempts,
 });
 
 const logger: RunnerLogger = { info() {}, warn() {}, error() {} };
@@ -37,20 +38,20 @@ describe('JobRunner.runOnce', () => {
   });
 
   it('un trabajo exitoso se completa', async () => {
-    const q = new FakeQueue([job()]);
+    const q = new FakeQueue([job(1)]);
     expect(await make(q, { analizar_documento: async () => {} }).runOnce()).toBe(true);
     expect(q.completed).toEqual([1]);
   });
 
   it('un error reintentable programa un reintento con espera creciente', async () => {
-    const q = new FakeQueue([job({ attempts: 3 })]);
+    const q = new FakeQueue([job(3)]);
     await make(q, { analizar_documento: async () => { throw new Error('se cayó la red'); } }).runOnce();
     expect(q.retried).toEqual([{ id: 1, error: 'se cayó la red', delay: 120 }]);
     expect(q.completed).toEqual([]);
   });
 
   it('un error con retryable:false falla sin reintento', async () => {
-    const q = new FakeQueue([job()]);
+    const q = new FakeQueue([job(1)]);
     const err = Object.assign(new Error('clave inválida'), { kind: 'bad_request', retryable: false });
     await make(q, { analizar_documento: async () => { throw err; } }).runOnce();
     expect(q.failed).toEqual([{ id: 1, error: 'bad_request: clave inválida' }]);
@@ -58,20 +59,20 @@ describe('JobRunner.runOnce', () => {
   });
 
   it('un rate_limited espera al menos 60 segundos', async () => {
-    const q = new FakeQueue([job({ attempts: 1 })]);
+    const q = new FakeQueue([job(1)]);
     const err = Object.assign(new Error('429'), { kind: 'rate_limited', retryable: true });
     await make(q, { analizar_documento: async () => { throw err; } }).runOnce();
     expect(q.retried[0].delay).toBe(60);
   });
 
   it('un tipo de trabajo sin manejador falla sin reintento', async () => {
-    const q = new FakeQueue([job({ kind: 'evaluar_completitud' })]);
+    const q = new FakeQueue([job(1)]);
     await make(q, {}).runOnce();
     expect(q.failed[0].error).toContain('evaluar_completitud');
   });
 
   it('un trabajo que no respeta el tiempo máximo se reporta como timeout', async () => {
-    const q = new FakeQueue([job()]);
+    const q = new FakeQueue([job(1)]);
     const fast = new JobRunner(q, {
       analizar_documento: (_j, signal) =>
         new Promise((_res, reject) => signal.addEventListener('abort', () => reject(new Error('abortado')))),
@@ -81,7 +82,7 @@ describe('JobRunner.runOnce', () => {
   });
 
   it('si el trabajo ya no era suyo al terminar, no falla', async () => {
-    const q = new FakeQueue([job()]);
+    const q = new FakeQueue([job(1)]);
     q.completeResult = false;
     await expect(make(q, { analizar_documento: async () => {} }).runOnce()).resolves.toBe(true);
   });
@@ -93,7 +94,7 @@ describe('JobRunner.runOnce', () => {
 
 describe('JobRunner.run', () => {
   it('procesa los trabajos pendientes y se detiene al cancelar la señal', async () => {
-    const q = new FakeQueue([job({ id: 1 }), job({ id: 2 })]);
+    const q = new FakeQueue([job(1), job(2)]);
     const controller = new AbortController();
     const runner = make(q, {
       analizar_documento: async (j) => { if (j.id === 2) controller.abort(); },
@@ -107,5 +108,17 @@ describe('JobRunner.run', () => {
     const controller = new AbortController();
     await make(q, {}, async () => controller.abort()).run(controller.signal);
     expect(q.sweeps).toBe(1);
+  });
+});
+
+describe('isFinalFailure', () => {
+  it('con intentos disponibles y un error reintentable, no es definitivo', () => {
+    expect(isFinalFailure(job(2), new Error('red'))).toBe(false);
+  });
+  it('en el último intento sí lo es', () => {
+    expect(isFinalFailure(job(5), new Error('red'))).toBe(true);
+  });
+  it('un error sin remedio es definitivo desde el primer intento', () => {
+    expect(isFinalFailure(job(1), Object.assign(new Error('clave inválida'), { retryable: false }))).toBe(true);
   });
 });

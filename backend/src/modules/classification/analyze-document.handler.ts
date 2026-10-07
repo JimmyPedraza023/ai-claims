@@ -6,7 +6,7 @@ import { AuditService } from '../audit/audit.service';
 import { ClaimsRepository } from '../claims/claims.repository';
 import { DocumentsRepository, type DocumentForAnalysis } from '../documents/documents.repository';
 import { FILE_STORAGE, type FileStorage } from '../documents/file-storage';
-import { PermanentJobError, type ClaimedJob } from '../jobs/job-queue';
+import { isFinalFailure, PermanentJobError, type ClaimedJob } from '../jobs/job-queue';
 import { JobsRepository } from '../jobs/jobs.repository';
 import { AnalysisRecorder } from './analysis-recorder';
 import { LLM_PROVIDER, LlmError, type LlmProvider, type LlmResult } from './llm-provider';
@@ -106,8 +106,7 @@ export class AnalyzeDocumentHandler {
 
   /** Último intento (o error sin remedio): el documento pasa a una persona en vez de quedar pendiente para siempre. */
   private async degradeIfFinal(job: ClaimedJob, doc: DocumentForAnalysis, e: unknown): Promise<void> {
-    const noRetry = typeof e === 'object' && e !== null && (e as { retryable?: unknown }).retryable === false;
-    if (job.attempts < job.maxAttempts && !noRetry) return;
+    if (!isFinalFailure(job, e)) return;
     const kind = e instanceof LlmError ? e.kind : 'error_interno';
     await this.markUnprocessable(doc, 'otro', 'analisis_automatico_fallido', `El análisis automático falló (${kind})`);
   }

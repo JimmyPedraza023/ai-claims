@@ -31,3 +31,13 @@ export class PermanentJobError extends Error {
     this.name = 'PermanentJobError';
   }
 }
+
+/**
+ * ¿Este fallo es el definitivo? Sí si se agotaron los intentos o si el error no tiene remedio.
+ * Los manejadores lo usan para dejar el caso en manos de una persona antes de que el trabajo se marque como fallido.
+ */
+export function isFinalFailure(job: ClaimedJob, error: unknown): boolean {
+  const noRetry =
+    typeof error === 'object' && error !== null && (error as { retryable?: unknown }).retryable === false;
+  return noRetry || job.attempts >= job.maxAttempts;
+}

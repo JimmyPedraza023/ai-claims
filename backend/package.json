@@ -44,7 +44,9 @@
     "db:migrate": "tsx --env-file=.env src/database/migrate.ts",
     "db:migrate:prod": "node dist/database/migrate.js",
     "test:integration": "node --env-file=.env.test ./node_modules/jest/bin/jest.js --config test/jest-integration.json --runInBand",
-    "db:migrate:test": "tsx --env-file=.env.test src/database/migrate.ts"
+    "db:migrate:test": "tsx --env-file=.env.test src/database/migrate.ts",
+    "start:worker": "node dist/worker.js",
+    "start:worker:dev": "nest start --watch --entryFile worker"
   },
   "jest": {
     "moduleFileExtensions": [

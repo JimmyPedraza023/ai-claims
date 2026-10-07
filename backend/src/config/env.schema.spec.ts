@@ -81,3 +81,28 @@ describe('validateEnv', () => {
     expect(validateEnv(base).TURNSTILE_SECRET_KEY).toBeUndefined();
   });
 });
+
+describe('variables del worker', () => {
+  const base = { DATABASE_URL: 'postgres://u:p@localhost:5432/db' };
+
+  it('traen valores por defecto coherentes entre sí', () => {
+    const env = validateEnv(base);
+    expect(env).toMatchObject({
+      LLM_MODEL: 'moonshotai/kimi-k3', LLM_TIMEOUT_MS: 120000, JOB_TIMEOUT_MS: 150000,
+      JOB_LEASE_SECONDS: 210, WORKER_CONCURRENCY: 2,
+    });
+    expect(env.NVIDIA_API_KEY).toBeUndefined();
+  });
+
+  it('una clave vacía cuenta como ausente', () => {
+    expect(validateEnv({ ...base, NVIDIA_API_KEY: '' }).NVIDIA_API_KEY).toBeUndefined();
+  });
+
+  it('rechaza un tiempo de trabajo menor que el del modelo', () => {
+    expect(() => validateEnv({ ...base, LLM_TIMEOUT_MS: '200000' })).toThrow(/JOB_TIMEOUT_MS/);
+  });
+
+  it('rechaza un lease que no cubre el tiempo del trabajo', () => {
+    expect(() => validateEnv({ ...base, JOB_LEASE_SECONDS: '100' })).toThrow(/JOB_LEASE_SECONDS/);
+  });
+});

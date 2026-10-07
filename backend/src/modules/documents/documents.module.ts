@@ -19,6 +19,6 @@ import { LocalFileStorage } from './local-file-storage';
         new LocalFileStorage(config.get('STORAGE_DIR', { infer: true })),
     },
   ],
-  exports: [DocumentsService, DocumentsRepository],
+  exports: [DocumentsService, DocumentsRepository, FILE_STORAGE],
 })
 export class DocumentsModule {}

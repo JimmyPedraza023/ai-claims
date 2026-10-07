@@ -45,7 +45,7 @@ export interface AnalyzeDocumentInput {
 
 export interface ClassifyClaimInput {
   narrative: string;
-  documents: { documentType: DocumentType; confidence: number }[];
+  documents: { documentType: DocumentType }[];
 }
 
 export interface LlmResult<T> {

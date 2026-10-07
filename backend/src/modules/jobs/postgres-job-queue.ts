@@ -1,5 +1,5 @@
 import type { Queryable } from '../../database/queryable';
-import type { ClaimedJob, JobQueue } from './job-queue';
+import type { ClaimedJob, JobKind, JobQueue } from './job-queue';
 import type { JobsRepository } from './jobs.repository';
 
 /** Conecta el runner con la base de datos. Sin transacciones: cada operación se confirma sola. */
@@ -8,10 +8,11 @@ export class PostgresJobQueue implements JobQueue {
     private readonly db: Queryable,
     private readonly repo: JobsRepository,
     private readonly leaseSeconds: number,
+    private readonly kinds?: JobKind[],
   ) {}
 
   claimNext(workerId: string): Promise<ClaimedJob | null> {
-    return this.repo.claimNext(this.db, workerId, { leaseSeconds: this.leaseSeconds });
+    return this.repo.claimNext(this.db, workerId, { leaseSeconds: this.leaseSeconds, kinds: this.kinds });
   }
   complete(jobId: number, workerId: string) {
     return this.repo.complete(this.db, jobId, workerId);
