@@ -222,4 +222,23 @@ export class ClaimsRepository {
     );
     return rows[0].reviewed;
   }
+
+  /** Primera evaluación sin completar: 'recibida' → 'incompleta'. */
+  async markIncomplete(client: Queryable, id: string): Promise<boolean> {
+    const { rowCount } = await client.query(
+      `UPDATE claims SET status = 'incompleta' WHERE id = $1 AND status = 'recibida'`,
+      [id],
+    );
+    return rowCount === 1;
+  }
+
+  /** Arranca el reloj: estado, instante y fecha límite en el mismo UPDATE (lo exigen los CHECK de la tabla). */
+  async startClock(client: Queryable, id: string, completedAt: Date, deadlineDate: string): Promise<boolean> {
+    const { rowCount } = await client.query(
+      `UPDATE claims SET status = 'completa', completed_at = $2, deadline_date = $3::date
+        WHERE id = $1 AND status IN ('recibida', 'incompleta')`,
+      [id, completedAt, deadlineDate],
+    );
+    return rowCount === 1;
+  }
 }

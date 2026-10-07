@@ -15,6 +15,8 @@ import { ClaimsRepository } from '../modules/claims/claims.repository';
 import { DocumentsModule } from '../modules/documents/documents.module';
 import { JobsModule } from '../modules/jobs/jobs.module';
 import { WorkerService } from './worker.service';
+import { CompletenessEvaluationsRepository } from '../modules/completeness/completeness-evaluations.repository';
+import { EvaluateCompletenessHandler } from '../modules/completeness/evaluate-completeness.handler';
 
 /** Todo lo que necesita el proceso del worker. La API no lo carga, así que no necesita la clave del modelo. */
 @Module({
@@ -39,6 +41,8 @@ import { WorkerService } from './worker.service';
     AnalyzeDocumentHandler,
     ClassifyClaimHandler,
     WorkerService,
+    CompletenessEvaluationsRepository,
+    EvaluateCompletenessHandler
   ],
 })
 export class WorkerModule {}
