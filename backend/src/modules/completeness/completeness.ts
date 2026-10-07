@@ -51,6 +51,9 @@ export interface CompletenessResult {
   pendingAnalysisCount: number;
   /** Con qué información se decidió (trazabilidad). */
   documentsConsidered: Array<{ id: string; type: DocumentType | null; status: DocumentStatus }>;
+  /** Documentos sin requisito que una persona aún debe mirar (tipo incierto u "otro"):
+   *  mientras existan, un "falta" puede ser falso. */
+  unmatchedInReviewCount: number;
 }
 
 export function evaluateCompleteness(
@@ -113,6 +116,9 @@ export function evaluateCompleteness(
       .filter((d) => d.type === null || !requiredSet.has(d.type))
       .map((d) => d.id),
     pendingAnalysisCount: documents.filter((d) => d.status === 'pendiente_analisis').length,
+    unmatchedInReviewCount: documents.filter(
+      (d) => d.status === 'requiere_revision' && (d.type === null || !requiredSet.has(d.type)),
+    ).length,
     documentsConsidered: documents.map((d) => ({ id: d.id, type: d.type, status: d.status })),
   };
 }

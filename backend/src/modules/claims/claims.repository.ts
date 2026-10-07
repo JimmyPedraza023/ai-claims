@@ -195,4 +195,50 @@ export class ClaimsRepository {
     );
     return rows[0] ? mapClaim(rows[0]) : null;
   }
+
+  /** Igual que findById, pero bloquea la fila hasta que termine la transacción. */
+  async findByIdForUpdate(client: Queryable, id: string): Promise<ClaimRecord | null> {
+    const { rows } = await client.query(`SELECT ${CLAIM_COLUMNS} FROM claims WHERE id = $1 FOR UPDATE`, [id]);
+    return rows[0] ? mapClaim(rows[0]) : null;
+  }
+
+  /** Fija el tipo solo si estaba vacío: nunca pisa uno ya fijado. */
+  async setClaimTypeIfEmpty(client: Queryable, id: string, claimType: ClaimType): Promise<boolean> {
+    const { rowCount } = await client.query(
+      `UPDATE claims SET claim_type = $2 WHERE id = $1 AND claim_type IS NULL`,
+      [id, claimType],
+    );
+    return rowCount === 1;
+  }
+
+  /** ¿Una persona ya revisó el tipo de este caso? (claims no guarda quién lo fijó.) */
+  async hasHumanTypeReview(client: Queryable, claimId: string): Promise<boolean> {
+    const { rows } = await client.query<{ reviewed: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1 FROM classifications
+          WHERE claim_id = $1 AND subject = 'tipo_reclamacion' AND reviewed_at IS NOT NULL
+       ) AS reviewed`,
+      [claimId],
+    );
+    return rows[0].reviewed;
+  }
+
+  /** Primera evaluación sin completar: 'recibida' → 'incompleta'. */
+  async markIncomplete(client: Queryable, id: string): Promise<boolean> {
+    const { rowCount } = await client.query(
+      `UPDATE claims SET status = 'incompleta' WHERE id = $1 AND status = 'recibida'`,
+      [id],
+    );
+    return rowCount === 1;
+  }
+
+  /** Arranca el reloj: estado, instante y fecha límite en el mismo UPDATE (lo exigen los CHECK de la tabla). */
+  async startClock(client: Queryable, id: string, completedAt: Date, deadlineDate: string): Promise<boolean> {
+    const { rowCount } = await client.query(
+      `UPDATE claims SET status = 'completa', completed_at = $2, deadline_date = $3::date
+        WHERE id = $1 AND status IN ('recibida', 'incompleta')`,
+      [id, completedAt, deadlineDate],
+    );
+    return rowCount === 1;
+  }
 }

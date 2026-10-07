@@ -4,11 +4,12 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { AppLoggerModule } from './common/logger/logger.module';
 import { AppConfigModule } from './config/app-config.module';
 import { DatabaseModule } from './database/database.module';
+import { ClassificationModule } from './modules/classification/classification.module';
 import { HealthModule } from './modules/health/health.module';
 import { IntakeModule } from './modules/intake/intake.module';
 
 @Module({
-  imports: [AppConfigModule, AppLoggerModule, DatabaseModule, HealthModule, IntakeModule],
+  imports: [AppConfigModule, AppLoggerModule, DatabaseModule, HealthModule, ClassificationModule, IntakeModule],
   providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],
 })
 export class AppModule {}

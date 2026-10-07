@@ -20,6 +20,23 @@ export interface DocumentSummary {
   uploadedAt: Date;
 }
 
+export interface DocumentAnalysisUpdate {
+  type: DocumentType;
+  status: DocumentStatus;
+  issue: DocumentIssue | null;
+  issueDetail: string | null;
+  extractedData: unknown;
+}
+
+export interface DocumentForAnalysis {
+  id: string;
+  claimId: string;
+  mimeType: string;
+  storagePath: string;
+  sha256: string;
+  status: DocumentStatus;
+}
+
 @Injectable()
 export class DocumentsRepository {
   /**
@@ -58,5 +75,34 @@ export class DocumentsRepository {
       issue: r.issue,
       uploadedAt: r.uploaded_at,
     }));
+  }
+
+  /**
+   * Aplica el resultado del análisis solo si el documento sigue pendiente.
+   * Devuelve false si ya estaba analizado o lo corrigió una persona: un reintento
+   * del trabajo no puede pisar ese resultado.
+   */
+  async applyAnalysis(client: Queryable, documentId: string, u: DocumentAnalysisUpdate): Promise<boolean> {
+    const { rowCount } = await client.query(
+      `UPDATE documents
+          SET document_type = $2, status = $3, issue = $4, issue_detail = $5,
+              extracted_data = $6::jsonb, updated_at = now()
+        WHERE id = $1 AND status = 'pendiente_analisis'`,
+      [documentId, u.type, u.status, u.issue, u.issueDetail, JSON.stringify(u.extractedData)],
+    );
+    return (rowCount ?? 0) > 0;
+  }
+
+  async findForAnalysis(client: Queryable, id: string): Promise<DocumentForAnalysis | null> {
+    const { rows } = await client.query<{
+      id: string; claim_id: string; mime_type: string; storage_path: string; sha256: string; status: DocumentStatus;
+    }>(
+      `SELECT id, claim_id, mime_type, storage_path, sha256, status FROM documents WHERE id = $1`,
+      [id],
+    );
+    const r = rows[0];
+    return r
+      ? { id: r.id, claimId: r.claim_id, mimeType: r.mime_type, storagePath: r.storage_path, sha256: r.sha256, status: r.status }
+      : null;
   }
 }

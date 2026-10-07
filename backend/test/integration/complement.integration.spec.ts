@@ -7,7 +7,7 @@ import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import request from 'supertest';
 import { AllExceptionsFilter } from '../../src/common/filters/all-exceptions.filter';
 import { DatabaseService } from '../../src/database/database.service';
@@ -42,7 +42,6 @@ describe('POST /tracking/documents (HTTP real, contra PostgreSQL real)', () => {
     const tracking = new TrackingService(ctx.db, ctx.claims, documents);
 
     const moduleRef = await Test.createTestingModule({
-      imports: [ThrottlerModule.forRoot({ throttlers: [{ name: 'short', ttl: 60_000, limit: 1000 }] })],
       controllers: [ComplementController],
       providers: [
         { provide: ComplementService, useValue: complement },
@@ -56,15 +55,22 @@ describe('POST /tracking/documents (HTTP real, contra PostgreSQL real)', () => {
         },
         { provide: APP_FILTER, useClass: AllExceptionsFilter },
       ],
-    }).compile();
+      // El controlador limita a 5 subidas por minuto (el @Throttle pisa la config del módulo) y esta
+      // suite manda más peticiones que eso en la misma ventana. El límite se prueba en
+      // intake.throttle.integration.spec.ts, así que aquí se desactiva el guard.
+    })
+      .overrideGuard(ThrottlerGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     app = moduleRef.createNestApplication({ logger: false });
     await app.init();
   });
 
   afterAll(async () => {
+    // app.close() ya dispara onModuleDestroy de DatabaseService (está como provider),
+    // así que el pool no se cierra una segunda vez a mano.
     await app.close();
-    await ctx.db.onModuleDestroy();
     await rm(storageDir, { recursive: true, force: true });
   });
 

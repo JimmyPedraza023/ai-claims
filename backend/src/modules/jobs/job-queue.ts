@@ -1,0 +1,43 @@
+export type JobKind = 'analizar_documento' | 'clasificar_reclamacion' | 'evaluar_completitud';
+
+export interface ClaimedJob {
+  id: number;
+  kind: JobKind;
+  claimId: string;
+  documentId: string | null;
+  /** Ya incluye este intento: la primera vez vale 1. */
+  attempts: number;
+  maxAttempts: number;
+}
+
+/** Lo que el runner necesita de la cola. Sin Nest ni base de datos: se prueba con una cola falsa. */
+export interface JobQueue {
+  claimNext(workerId: string): Promise<ClaimedJob | null>;
+  /** false si el trabajo ya no es de este worker (venció su lease y lo tomó otro). */
+  complete(jobId: number, workerId: string): Promise<boolean>;
+  /** Devuelve el estado resultante, o null si el trabajo ya no es de este worker. */
+  retryLater(jobId: number, workerId: string, error: string, delaySeconds: number): Promise<'pendiente' | 'fallido' | null>;
+  failPermanently(jobId: number, workerId: string, error: string): Promise<boolean>;
+  /** Marca como fallidos los trabajos abandonados que ya agotaron sus intentos. Devuelve cuántos. */
+  sweep(): Promise<number>;
+}
+
+/** Un trabajo que no tiene sentido reintentar (datos que no existen, por ejemplo). El runner lo reconoce por `retryable`. */
+export class PermanentJobError extends Error {
+  readonly kind = 'permanente';
+  readonly retryable = false;
+  constructor(message: string) {
+    super(message);
+    this.name = 'PermanentJobError';
+  }
+}
+
+/**
+ * ¿Este fallo es el definitivo? Sí si se agotaron los intentos o si el error no tiene remedio.
+ * Los manejadores lo usan para dejar el caso en manos de una persona antes de que el trabajo se marque como fallido.
+ */
+export function isFinalFailure(job: ClaimedJob, error: unknown): boolean {
+  const noRetry =
+    typeof error === 'object' && error !== null && (error as { retryable?: unknown }).retryable === false;
+  return noRetry || job.attempts >= job.maxAttempts;
+}
