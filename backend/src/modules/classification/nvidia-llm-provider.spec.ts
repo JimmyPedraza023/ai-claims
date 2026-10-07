@@ -130,4 +130,11 @@ describe('NvidiaLlmProvider', () => {
     const e = await errorOf(make(impl).analyzeDocument(docInput));
     expect([e.kind, e.retryable]).toEqual(['refused', false]);
   });
+
+  it('el mensaje de una salida inválida dice cómo terminó la respuesta y cuánto tardó', async () => {
+    const { impl } = fakeFetch(() => completion('{"documentType":', { finish_reason: 'stop' }));
+    const e = await errorOf(make(impl).analyzeDocument(docInput));
+    expect(e.kind).toBe('invalid_output');
+    expect(e.message).toMatch(/finish_reason=stop.*latencia_ms=\d+/);
+  });
 });

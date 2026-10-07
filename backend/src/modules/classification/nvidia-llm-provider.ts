@@ -9,10 +9,11 @@ import { PROMPT_VERSION, buildAnalyzeDocumentMessages, buildClassifyClaimMessage
 export interface NvidiaLlmConfig {
   apiKey: string;
   model: string;
-  baseUrl?: string;        // por defecto, el endpoint de NVIDIA
-  timeoutMs?: number;      // por defecto 120 s: el endpoint gratuito tarda ~50 s por llamada
-  maxTokens?: number;      // por defecto 3000: margen para el razonamiento
-  fetchImpl?: typeof fetch; // solo para pruebas
+  textModel?: string;
+  baseUrl?: string;
+  timeoutMs?: number;
+  maxTokens?: number;
+  fetchImpl?: typeof fetch;
 }
 
 interface ChatCompletionResponse {
@@ -40,20 +41,42 @@ export class NvidiaLlmProvider implements LlmProvider {
     this.fetchImpl = config.fetchImpl ?? fetch;
   }
 
-  analyzeDocument(input: AnalyzeDocumentInput, signal?: AbortSignal): Promise<LlmResult<DocumentAnalysis>> {
-    return this.run(buildAnalyzeDocumentMessages(input), DocumentAnalysisSchema, signal);
+  analyzeDocument(
+    input: AnalyzeDocumentInput,
+    signal?: AbortSignal,
+  ): Promise<LlmResult<DocumentAnalysis>> {
+    return this.run(
+      buildAnalyzeDocumentMessages(input),
+      DocumentAnalysisSchema,
+      this.config.model,
+      signal,
+    );
   }
 
-  classifyClaim(input: ClassifyClaimInput, signal?: AbortSignal): Promise<LlmResult<ClaimClassification>> {
-    return this.run(buildClassifyClaimMessages(input), ClaimClassificationSchema, signal);
+  classifyClaim(
+    input: ClassifyClaimInput,
+    signal?: AbortSignal,
+  ): Promise<LlmResult<ClaimClassification>> {
+    return this.run(
+      buildClassifyClaimMessages(input),
+      ClaimClassificationSchema,
+      this.config.textModel ?? this.config.model,
+      signal,
+    );
   }
 
   private async run<S extends z.ZodType>(
-    messages: ChatMessage[], schema: S, callerSignal?: AbortSignal,
-  ): Promise<LlmResult<z.infer<S>>> {
+  messages: ChatMessage[],
+  schema: S,
+  model: string,
+  callerSignal?: AbortSignal,
+): Promise<LlmResult<z.infer<S>>> {
     const started = Date.now();
     const partial = (extra: Partial<LlmCallMeta> = {}): Partial<LlmCallMeta> => ({
-      model: this.config.model, promptVersion: PROMPT_VERSION, latencyMs: Date.now() - started, ...extra,
+      model,
+      promptVersion: PROMPT_VERSION,
+      latencyMs: Date.now() - started,
+      ...extra,
     });
 
     let status: number;
@@ -64,7 +87,11 @@ export class NvidiaLlmProvider implements LlmProvider {
         method: 'POST',
         headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: this.config.model, messages, temperature: 0, max_tokens: this.maxTokens, stream: false,
+          model,
+          messages,
+          temperature: 0,
+          max_tokens: this.maxTokens,
+          stream: false,
         }),
         signal: AbortSignal.any(signals),
       });
@@ -87,7 +114,7 @@ export class NvidiaLlmProvider implements LlmProvider {
     const content = choice?.message?.content ?? null;
     // El razonamiento (reasoning_content) no se lee ni se guarda: puede repetir datos del documento.
     const meta: LlmCallMeta = {
-      model: this.config.model,
+      model,
       promptVersion: PROMPT_VERSION,
       latencyMs: Date.now() - started,
       promptTokens: data.usage?.prompt_tokens,
@@ -103,7 +130,18 @@ export class NvidiaLlmProvider implements LlmProvider {
     try {
       return { data: parseModelOutput(content, schema), meta };
     } catch (e) {
-      if (e instanceof LlmError) throw new LlmError(e.kind, e.message, meta); // le añade meta para ai_runs
+      if (e instanceof LlmError) {
+        const detail =
+          `finish_reason=${choice?.finish_reason ?? 'n/d'}, ` +
+          `tokens_salida=${data.usage?.completion_tokens ?? 'n/d'}, latencia_ms=${meta.latencyMs}`;
+
+        throw new LlmError(
+          e.kind,
+          `${e.message} (${detail})`,
+          meta,
+        );
+      }
+
       throw e;
     }
   }

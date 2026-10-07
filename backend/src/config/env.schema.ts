@@ -68,6 +68,9 @@ export const envSchema = z
     JOB_TIMEOUT_MS: z.coerce.number().int().min(1000).default(150_000),
     // Debe superar JOB_TIMEOUT_MS: si no, otro worker tomaría un trabajo aún en curso.
     JOB_LEASE_SECONDS: z.coerce.number().int().min(10).default(210),
+
+    // Modelo para tareas de solo texto (clasificar). Si no se define, se usa LLM_MODEL.
+    LLM_TEXT_MODEL: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(1).optional()),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production' && env.CORS_ORIGINS.length === 0) {

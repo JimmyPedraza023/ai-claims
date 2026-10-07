@@ -34,6 +34,7 @@ import { EvaluateCompletenessHandler } from '../modules/completeness/evaluate-co
           model: config.get('LLM_MODEL', { infer: true }),
           timeoutMs: config.get('LLM_TIMEOUT_MS', { infer: true }),
           maxTokens: config.get('LLM_MAX_TOKENS', { infer: true }),
+          textModel: config.get('LLM_TEXT_MODEL', { infer: true }),
         });
       },
     },
