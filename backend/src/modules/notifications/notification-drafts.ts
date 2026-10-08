@@ -1,6 +1,6 @@
 // backend/src/modules/notifications/notification-drafts.ts
 import { createHash } from 'node:crypto';
-import type { ClaimType } from '../../common/domain/enums';
+import type { ClaimType, DocumentType } from '../../common/domain/enums';
 import type { CompletenessResult } from '../completeness/completeness';
 import { DOCUMENT_LABELS, HEADLINES, ISSUE_MESSAGES } from '../intake/tracking.messages';
 
@@ -77,5 +77,38 @@ export function draftBeneficiaryNotice(
         : 'Tu reclamación: algunos documentos necesitan corrección',
     body: lines.join('\n'),
     dedupeKey: `estado:${claimId}:${createHash('sha256').update(fingerprint).digest('hex').slice(0, 16)}`,
+  };
+}
+
+/**
+ * Aviso por la decisión "pedir documentos". Recibe SOLO tipos de documento: el motivo que escribió
+ * el analista es interno y nunca llega al correo.
+ * Si el caso ya estaba completo, el seguimiento rechaza subidas (409): el aviso no manda a subirlos por el enlace.
+ */
+export function draftRequestedDocumentsNotice(
+  claimId: string,
+  decisionId: string,
+  documents: readonly DocumentType[],
+  uploadViaLink: boolean,
+): NotificationDraft {
+  const lines = [
+    'Hola,',
+    '',
+    uploadViaLink
+      ? 'Para continuar con tu reclamación necesitamos que nos envíes estos documentos:'
+      : 'Tu expediente estaba completo, pero necesitamos estos documentos adicionales:',
+    '',
+    ...documents.map((t) => `- ${DOCUMENT_LABELS[t]}`),
+    '',
+    uploadViaLink
+      ? 'Puedes subirlos desde el enlace de seguimiento que te enviamos al radicar tu solicitud. ' +
+        'Si tienes dudas, comunícate con la compañía por sus canales habituales.'
+      : 'Por favor comunícate con la compañía por sus canales habituales para entregarlos.',
+  ];
+  return {
+    kind: 'faltantes',
+    subject: 'Tu reclamación: documentos que necesitamos',
+    body: lines.join('\n'),
+    dedupeKey: `decision:${decisionId}`,
   };
 }
