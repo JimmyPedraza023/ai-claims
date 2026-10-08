@@ -48,7 +48,7 @@ export default function IntakePage() {
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
   const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
-  const { containerRef, token, reset, failed } = useTurnstile(siteKey);
+  const { containerRef, token, reset, failed, enabled } = useTurnstile(siteKey);
 
   useEffect(() => {
     const rest = Object.fromEntries(
@@ -77,8 +77,8 @@ export default function IntakePage() {
   }
 
   const canSend = useMemo(
-    () => !sending && form.consentAccepted && (!siteKey || !!token),
-    [sending, form.consentAccepted, siteKey, token],
+    () => !sending && form.consentAccepted && (!enabled || !!token),
+    [sending, form.consentAccepted, enabled, token],
   );
 
   async function onSubmit() {
@@ -100,10 +100,15 @@ export default function IntakePage() {
       sessionStorage.removeItem(DRAFT_KEY);
       setDone(true);
     } catch (err) {
-      const e = err as ApiError;
-      if (e.fieldErrors?.length) setErrors(Object.fromEntries(e.fieldErrors.map((x) => [x.field, x.message])));
-      setBanner(e.message);
-    } finally {
+        if (err instanceof ApiError) {
+          if (err.fieldErrors.length) {
+            setErrors(Object.fromEntries(err.fieldErrors.map((x) => [x.field, x.message])));
+          }
+          setBanner(err.message);
+        } else {
+          setBanner('Algo salió mal de nuestro lado. Inténtalo de nuevo en unos minutos.');
+        }
+      } finally {
       reset(); // el token de Turnstile es de un solo uso, haya o no error
       setSending(false);
     }
@@ -118,7 +123,7 @@ export default function IntakePage() {
 
   if (done) {
     return (
-      <main className="mx-auto max-w-xl px-5 py-12">
+      <section className="mx-auto max-w-xl">
         <h1 className="text-2xl font-semibold text-stone-900">Recibimos tu reclamación</h1>
         <p className="mt-4 text-stone-700">
           Te enviaremos un correo con un enlace para ver qué documentos hemos recibido y si falta alguno. No necesitas crear una cuenta.
@@ -127,7 +132,7 @@ export default function IntakePage() {
         <button onClick={startAnother} className="mt-8 text-teal-800 underline underline-offset-4">
           Radicar otra reclamación
         </button>
-      </main>
+      </section>
     );
   }
 
@@ -208,7 +213,7 @@ export default function IntakePage() {
         </label>
         {errors.consentAccepted && <p role="alert" className="text-sm text-red-800">{errors.consentAccepted}</p>}
 
-        {siteKey && <div ref={containerRef} />}
+        {enabled && <div ref={containerRef} />}
         {failed && <p role="alert" className="text-sm text-red-800">No pudimos cargar la verificación. Recarga la página.</p>}
 
         <button

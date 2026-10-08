@@ -10,9 +10,9 @@ export default function PublicLayout() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
+      <section className="mx-auto max-w-xl">
         <Outlet />
-      </main>
+      </section>
 
       <footer className="border-t border-slate-200 bg-white">
         <p className="mx-auto max-w-2xl px-4 py-4 text-xs text-slate-500">
