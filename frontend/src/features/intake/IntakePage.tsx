@@ -6,11 +6,13 @@ const MAX_FILES = 10;
 const MAX_BYTES = 10 * 1024 * 1024;
 const DRAFT_KEY = 'intake-draft';
 
-// TODO: confirmar los valores aceptados en backend/src/modules/intake/intake.schema.ts
+// Los valores deben coincidir con DOCUMENT_TYPES de backend/src/modules/intake/intake.schema.ts
 const DOC_TYPES = [
   { value: 'CC', label: 'Cédula de ciudadanía' },
   { value: 'CE', label: 'Cédula de extranjería' },
   { value: 'PA', label: 'Pasaporte' },
+  { value: 'PEP', label: 'Permiso especial de permanencia (PEP)' },
+  { value: 'PPT', label: 'Permiso por protección temporal (PPT)' },
 ];
 
 const EMPTY = {
@@ -168,7 +170,11 @@ export default function IntakePage() {
             </select>
           </Field>
           <Field label="Número de documento" error={errors.beneficiaryDocumentNumber}>
-            <input inputMode="numeric" value={form.beneficiaryDocumentNumber} onChange={set('beneficiaryDocumentNumber')} className={input} />
+            <input  inputMode={form.beneficiaryDocumentType === 'PA' ? 'text' : 'numeric'}
+            autoComplete="off"
+            value={form.beneficiaryDocumentNumber}
+            onChange={set('beneficiaryDocumentNumber')}
+            className={input}/>
           </Field>
           <Field label="Correo electrónico" hint="Aquí te enviaremos el enlace de seguimiento." error={errors.beneficiaryEmail}>
             <input type="email" autoComplete="email" value={form.beneficiaryEmail} onChange={set('beneficiaryEmail')} className={input} />
@@ -181,7 +187,11 @@ export default function IntakePage() {
             <input value={form.insuredFullName} onChange={set('insuredFullName')} className={input} />
           </Field>
           <Field label="Número de documento" error={errors.insuredDocumentNumber}>
-            <input inputMode="numeric" value={form.insuredDocumentNumber} onChange={set('insuredDocumentNumber')} className={input} />
+            <input autoComplete="off"
+              value={form.insuredDocumentNumber}
+              onChange={set('insuredDocumentNumber')}
+              className={input}
+            />
           </Field>
         </fieldset>
 
