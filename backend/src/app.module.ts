@@ -11,6 +11,7 @@ import { IntakeModule } from './modules/intake/intake.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DecisionsModule } from './modules/decisions/decisions.module';
 import { PanelModule } from './modules/panel/panel.module';
+import { MetricsModule } from './modules/metrics/metrics.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { PanelModule } from './modules/panel/panel.module';
     AuthModule,
     DecisionsModule,
     PanelModule,
+    MetricsModule
   ],
   providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],
 })
