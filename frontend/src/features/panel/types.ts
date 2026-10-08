@@ -106,3 +106,45 @@ export interface CaseDetail {
   decisions: DecisionRecord[];
   timeline: TimelineEntry[];
 }
+
+export interface ClockSummary {
+  open: number;
+  withoutClock: number;
+  onTime: number;
+  atRisk: number;
+  expired: number;
+}
+
+export interface ClockMetrics {
+  summary: ClockSummary;
+  claims: CaseRow[];
+}
+
+export interface ModelCorrectionRow {
+  subject: string;
+  total: number;
+  reviewed: number;
+  confirmed: number;
+  corrected: number;
+  abstained: number;
+  pendingReview: number;
+  correctionRate: number | null;
+}
+
+export interface FirstResponseStats {
+  total: number;
+  responded: number;
+  withoutResponse: number;
+  avgHours: number | null;
+  medianHours: number | null;
+  p90Hours: number | null;
+  maxHours: number | null;
+  oldestWaitingHours: number | null;
+  baselineHours: number;
+}
+
+export interface RandomTimeline {
+  claim: { id: string; referenceCode: string } | null;
+  timeline: TimelineEntry[];
+  claimsWithoutEvents: number;
+}

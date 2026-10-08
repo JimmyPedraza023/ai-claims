@@ -24,7 +24,9 @@ export default function PanelLayout() {
             <NavLink to="/panel" end className={linkClass}>
               Casos
             </NavLink>
-            {/* El enlace a Métricas se agrega en el 15d, cuando exista la página. */}
+            <NavLink to="/panel/metricas" className={linkClass}>
+              Métricas
+            </NavLink>
           </nav>
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-stone-600 sm:inline">{user?.fullName}</span>

@@ -45,3 +45,15 @@ export function clockLine(clock: ClockInfo | null): string {
   if (!clock || !clock.deadlineDate) return 'El plazo arranca cuando el expediente esté completo.';
   return `Día ${clock.daysElapsed} de ${clock.daysTotal} · ${remainingText(clock.daysRemaining)}`;
 }
+
+export function formatHours(hours: number | null): string {
+  if (hours === null) return '—';
+  if (hours < 1) return `${Math.max(1, Math.round(hours * 60))} min`;
+  if (hours < 48) return `${hours.toLocaleString('es-CO', { maximumFractionDigits: 1 })} h`;
+  return `${(hours / 24).toLocaleString('es-CO', { maximumFractionDigits: 1 })} días`;
+}
+
+export function formatRate(rate: number | null): string {
+  if (rate === null) return '—';
+  return `${(rate * 100).toLocaleString('es-CO', { maximumFractionDigits: 1 })} %`;
+}
