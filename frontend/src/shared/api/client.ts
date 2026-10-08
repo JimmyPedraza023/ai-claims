@@ -30,6 +30,7 @@ const FALLBACK_MESSAGES: Record<number, string> = {
   413: 'Uno de los archivos es demasiado grande. El máximo es 10 MB por archivo.',
   415: 'Uno de los archivos no es válido. Usa PDF, JPG, PNG o WebP.',
   429: 'Has hecho muchos intentos seguidos. Espera un momento e inténtalo otra vez.',
+  400: 'Revisa los datos del formulario e inténtalo de nuevo.',
 };
 
 interface RequestOptions {

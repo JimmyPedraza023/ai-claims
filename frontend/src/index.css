@@ -9,22 +9,25 @@
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-html {
-  background: #fcfcfb;
+html,
+body {
+  background: #f8fafc;
 }
 
 body {
   margin: 0;
   min-width: 320px;
-  min-height: 100vh;
-  background: #fcfcfb;
+  min-height: 100dvh;
+}
+
+#root {
+  min-height: 100dvh;
 }
 
 button,
@@ -36,19 +39,4 @@ select {
 
 button {
   cursor: pointer;
-}
-
-#root {
-  min-height: 100vh;
-}
-
-html {
-  background: #f8fafc;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  background: #f8fafc;
 }

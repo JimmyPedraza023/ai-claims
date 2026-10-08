@@ -51,7 +51,10 @@ export default function IntakePage() {
   const { containerRef, token, reset, failed } = useTurnstile(siteKey);
 
   useEffect(() => {
-    const { consentAccepted: _omit, ...rest } = form;
+    const rest = Object.fromEntries(
+      Object.entries(form).filter(([key]) => key !== 'consentAccepted'),
+    );
+
     sessionStorage.setItem(DRAFT_KEY, JSON.stringify(rest));
   }, [form]);
 
