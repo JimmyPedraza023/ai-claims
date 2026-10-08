@@ -1,22 +1,19 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import IntakePage from '@/features/intake/IntakePage';
 
-// Referrer-Policy: no-referrer, como respaldo mientras no haya cabecera HTTP (vercel.json al desplegar).
-if (!document.querySelector('meta[name="referrer"]')) {
-  const m = document.createElement('meta');
-  m.name = 'referrer';
-  m.content = 'no-referrer';
-  document.head.appendChild(m);
-}
+import NotFoundPage from '@/app/NotFoundPage';
+import IntakePage from '@/features/intake/IntakePage';
+import TrackingPage from '@/features/tracking/TrackingPage';
+import PublicLayout from '@/shared/ui/PublicLayout';
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<IntakePage />} />
-        {/* Después de la rama 8: <Route path="/seguimiento" element={<TrackingPage />} /> */}
-        {/* Después: <Route path="/panel/*" element={<PanelRoutes />} /> */}
-        <Route path="*" element={<IntakePage />} />
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<IntakePage />} />
+          <Route path="/seguimiento" element={<TrackingPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );

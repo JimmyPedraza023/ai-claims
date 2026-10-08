@@ -48,7 +48,11 @@ export function useTurnstile(siteKey: string | undefined) {
         if (cancelled || !containerRef.current || !window.turnstile) return;
         widgetId.current = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
-          callback: (t: string) => setToken(t),
+          language: 'es',
+          callback: (t: string) => {
+            setToken(t);
+            setFailed(false);
+          },
           'expired-callback': () => setToken(null),
           'error-callback': () => {
             setToken(null);
@@ -69,5 +73,5 @@ export function useTurnstile(siteKey: string | undefined) {
     if (widgetId.current && window.turnstile) window.turnstile.reset(widgetId.current);
   }, []);
 
-  return { containerRef, token, reset, failed };
+  return { containerRef, token, reset, failed, enabled: Boolean(siteKey) };
 }

@@ -5,7 +5,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable, Unauthor
 import { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
 import type { Request } from "express";
-import { UsersRepository } from "./users.repository.js";
+import { UsersRepository } from "./users.repository";
 import { DatabaseService } from "../../database/database.service.js";
 
 export const ROLES_KEY = 'roles';
