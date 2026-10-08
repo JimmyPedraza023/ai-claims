@@ -8,9 +8,23 @@ import { ClassificationModule } from './modules/classification/classification.mo
 import { ClockWatchModule } from './modules/clock-watch/clock-watch.module';
 import { HealthModule } from './modules/health/health.module';
 import { IntakeModule } from './modules/intake/intake.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { DecisionsModule } from './modules/decisions/decisions.module';
+import { PanelModule } from './modules/panel/panel.module';
 
 @Module({
-  imports: [AppConfigModule, AppLoggerModule, DatabaseModule, HealthModule, ClassificationModule, IntakeModule, ClockWatchModule],
+  imports: [
+    AppConfigModule,
+    AppLoggerModule,
+    DatabaseModule,
+    HealthModule,
+    ClassificationModule,
+    IntakeModule,
+    ClockWatchModule,
+    AuthModule,
+    DecisionsModule,
+    PanelModule,
+  ],
   providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],
 })
 export class AppModule {}

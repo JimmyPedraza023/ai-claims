@@ -241,4 +241,19 @@ export class ClaimsRepository {
     );
     return rowCount === 1;
   }
+
+  /** Cierra el caso. Solo desde 'completa': la base ya impide un segundo cierre. */
+  async closeClaim(client: Queryable, id: string, status: 'pagada' | 'objetada'): Promise<boolean> {
+    const { rowCount } = await client.query(
+      `UPDATE claims SET status = $2, closed_at = now() WHERE id = $1 AND status = 'completa'`,
+      [id, status],
+    );
+    return rowCount === 1;
+  }
+
+  /** Cambio humano del tipo. A diferencia de setClaimTypeIfEmpty, sí reemplaza el valor guardado. */
+  async setClaimType(client: Queryable, id: string, claimType: ClaimType): Promise<boolean> {
+    const { rowCount } = await client.query(`UPDATE claims SET claim_type = $2 WHERE id = $1`, [id, claimType]);
+    return rowCount === 1;
+  }
 }

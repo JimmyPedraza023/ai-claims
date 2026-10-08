@@ -80,6 +80,13 @@ export const envSchema = z
     // --- Vigilancia del reloj ---
     CLOCK_WATCH_SECRET: optionalStr(z.string().min(32, 'debe tener al menos 32 caracteres')),
     CLOCK_WATCH_PING_URL: optionalStr(z.url()),
+
+    JWT_SECRET: z.preprocess(
+      (v) => (v === '' ? undefined : v),
+      z.string().min(32, 'debe tener al menos 32 caracteres').optional(),
+    ),
+
+    JWT_TTL_SECONDS: z.coerce.number().int().min(60).default(3600),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production') {

@@ -105,4 +105,21 @@ export class DocumentsRepository {
       ? { id: r.id, claimId: r.claim_id, mimeType: r.mime_type, storagePath: r.storage_path, sha256: r.sha256, status: r.status }
       : null;
   }
+
+  /**
+   * Corrección humana. No toca un documento que el modelo todavía está analizando.
+   * Devuelve false si estaba pendiente de análisis.
+   */
+  async applyHumanCorrection(
+    client: Queryable, id: string,
+    u: { type: DocumentType; status: 'valido' | 'invalido'; issue: DocumentIssue | null },
+  ): Promise<boolean> {
+    const { rowCount } = await client.query(
+      `UPDATE documents
+          SET document_type = $2, status = $3, issue = $4, issue_detail = NULL, updated_at = now()
+        WHERE id = $1 AND status <> 'pendiente_analisis'`,
+      [id, u.type, u.status, u.issue],
+    );
+    return rowCount === 1;
+  }
 }

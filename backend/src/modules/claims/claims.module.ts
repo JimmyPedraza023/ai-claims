@@ -6,6 +6,6 @@ import { ClaimsService } from './claims.service';
 @Module({
   imports: [AuditModule],
   providers: [ClaimsRepository, ClaimsService],
-  exports: [ClaimsService],
+  exports: [ClaimsRepository, ClaimsService],
 })
 export class ClaimsModule {}
