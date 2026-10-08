@@ -22,16 +22,22 @@ export class ApiError extends Error {
   }
 }
 
+const GENERIC_MESSAGE = 'Algo salió mal de nuestro lado. Inténtalo de nuevo en unos minutos.';
+
 const FALLBACK_MESSAGES: Record<number, string> = {
   0: 'No pudimos conectarnos. Revisa tu internet e inténtalo de nuevo; tus datos siguen aquí.',
+  400: 'Revisa los datos del formulario e inténtalo de nuevo.',
+  401: 'Tu sesión no es válida o ya terminó. Inicia sesión de nuevo.',
   403: 'No pudimos verificar que eres una persona. Inténtalo de nuevo.',
   404: 'No encontramos lo que buscas.',
   409: 'Esta acción ya no está disponible para esta reclamación.',
   413: 'Uno de los archivos es demasiado grande. El máximo es 10 MB por archivo.',
   415: 'Uno de los archivos no es válido. Usa PDF, JPG, PNG o WebP.',
   429: 'Has hecho muchos intentos seguidos. Espera un momento e inténtalo otra vez.',
-  400: 'Revisa los datos del formulario e inténtalo de nuevo.',
 };
+
+// Estados en los que el backend redacta el mensaje pensando en quien lo lee.
+const SERVER_MESSAGE_STATUSES = [400, 409, 429];
 
 interface RequestOptions {
   method?: 'GET' | 'POST';
@@ -60,11 +66,31 @@ export async function request<T>(path: string, opts: RequestOptions = {}): Promi
   const data = await res.json().catch(() => null);
   if (res.ok) return data as T;
 
-  // El backend devuelve `errors: [{field, message}]` en 400 y `message` en 429.
+  // El backend devuelve `errors: [{field, message}]` en 400 y `message` en 400, 409 y 429.
   const fieldErrors: FieldError[] = Array.isArray(data?.errors) ? data.errors : [];
   const message =
-    (res.status === 429 && typeof data?.message === 'string' && data.message) ||
+    (SERVER_MESSAGE_STATUSES.includes(res.status) && typeof data?.message === 'string' && data.message) ||
     FALLBACK_MESSAGES[res.status] ||
-    'Algo salió mal de nuestro lado. Inténtalo de nuevo en unos minutos.';
+    GENERIC_MESSAGE;
   throw new ApiError(res.status, message, fieldErrors);
+}
+
+/** Descarga un archivo protegido (el panel no puede usar enlaces directos: necesitan la cabecera de sesión). */
+export async function requestBlob(
+  path: string,
+  opts: { headers?: Record<string, string>; signal?: AbortSignal } = {},
+): Promise<Blob> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      headers: opts.headers,
+      signal: opts.signal,
+      cache: 'no-store',
+    });
+  } catch {
+    throw new ApiError(0, FALLBACK_MESSAGES[0]);
+  }
+
+  if (res.ok) return res.blob();
+  throw new ApiError(res.status, FALLBACK_MESSAGES[res.status] ?? GENERIC_MESSAGE);
 }
