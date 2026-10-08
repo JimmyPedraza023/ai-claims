@@ -32,6 +32,10 @@ describe('Panel auth', () => {
     ['post', `/panel/claims/${ID}/decisions`],
     ['post', `/panel/claims/${ID}/corrections/claim-type`],
     ['post', `/panel/claims/${ID}/documents/${ID}/corrections`],
+    ['get', '/panel/metrics/clock'],
+    ['get', '/panel/metrics/model-corrections'],
+    ['get', '/panel/metrics/first-response'],
+    ['get', '/panel/metrics/random-timeline'],
   ];
 
   it.each(routes)('%s %s sin token responde 401', async (method, path) => {
