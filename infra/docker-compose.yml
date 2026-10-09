@@ -1,19 +1,99 @@
+# Pila completa para un despliegue en una sola VM (Docker en una EC2).
+# La base de datos es Supabase (externa), no hay servicio local de Postgres.
+#
+# Uso inicial en el servidor:
+#   1. Copia infra/.env.example a infra/.env y rellena las variables.
+#   2. docker compose -f infra/docker-compose.yml build
+#   3. scripts/init-ssl.sh            # obtiene el certificado Let's Encrypt
+#   4. docker compose -f infra/docker-compose.yml up -d
+#
+# Renovación del certificado: scripts/renew-certificates.sh (programar con cron).
+# Vigilancia del reloj: GitHub Actions llama a https://${DOMAIN}/internal/clock-watch.
+
+name: ai-claims
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" }
+
+x-backend: &backend
+  build: ../backend
+  image: ai-claims-backend:latest
+  env_file: .env
+  environment:
+    NODE_ENV: production
+    CORS_ORIGINS: https://${DOMAIN:?Define DOMAIN en infra/.env}
+    FRONTEND_URL: https://${DOMAIN:?Define DOMAIN en infra/.env}
+    STORAGE_DIR: /data/uploads
+  logging: *logging
+
 services:
-  db:
-    image: postgres:16
+  migrate:
+    <<: *backend
+    command: ["node", "dist/database/migrate.js"]
+    restart: "no"
+
+  api:
+    <<: *backend
+    restart: unless-stopped
+    volumes: [uploads:/data/uploads]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      retries: 5
+
+  worker:
+    <<: *backend
+    command: ["node", "dist/worker.js"]
+    restart: unless-stopped
+    volumes: [uploads:/data/uploads]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  nginx:
+    build:
+      context: ..
+      dockerfile: infra/nginx/Dockerfile
+      args:
+        VITE_TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY}
+        VITE_SUPABASE_URL: ${SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: aix
-      POSTGRES_PASSWORD: aix
-      POSTGRES_DB: aix_claims
-    ports:
-      - "5433:5432"   # 5433 por si ya tienes un Postgres local en 5432
+      DOMAIN: ${DOMAIN:?Define DOMAIN en infra/.env}
+    ports: ["80:80", "443:443"]
     volumes:
-      - pgdata:/var/lib/postgresql/data
-  mailpit:
-    image: axllent/mailpit
-    container_name: infra-mailpit-1
-    ports:
-      - "1025:1025"   # SMTP para el backend
-      - "8025:8025"   # UI de recepción de correos
+      # rw para que el entrypoint cree un cert temporal si aún no existe el real.
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/www/certbot:/var/www/certbot:ro
+    depends_on: [api]
+    logging: *logging
+
+  # One-shot: obtiene el certificado Let's Encrypt vía webroot (el puerto 80 lo
+  # sirve nginx). Ejecutar con: docker compose -f infra/docker-compose.yml run --rm certbot
+  certbot:
+    image: certbot/certbot
+    restart: "no"
+    environment:
+      DOMAIN: ${DOMAIN:?Define DOMAIN en infra/.env}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:?Define LETSENCRYPT_EMAIL en infra/.env}
+    command:
+      - certonly
+      - --webroot
+      - -w
+      - /var/www/certbot
+      - -d
+      - ${DOMAIN:?Define DOMAIN en infra/.env}
+      - --email
+      - ${LETSENCRYPT_EMAIL:?Define LETSENCRYPT_EMAIL en infra/.env}
+      - --agree-tos
+      - --non-interactive
+      - --keep-until-expiring
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/www/certbot:/var/www/certbot
+
 volumes:
-  pgdata:
+  uploads:
