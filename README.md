@@ -12,17 +12,15 @@ Una versión pequeña del trabajo real: un beneficiario radica una reclamación 
 
 | Qué | Dónde |
 |---|---|
-| **Canal de radicación** (página pública, sin usuario) | [COMPLETAR: URL del frontend desplegado] |
-| **Panel del analista** | [COMPLETAR: URL]`/panel/login` |
-| **Usuario de prueba del panel** | [COMPLETAR: correo y contraseña] |
-| **Las cuatro respuestas** | Panel → **Métricas** (ver sección 5) |
-| **Video de 5 minutos** | [COMPLETAR: enlace] |
-| **Conjunto de datos de prueba** | Carpeta [`data/`](./data) (ver sección 9) |
+| **Canal de radicación** (página pública, sin usuario) | http://18.191.116.50/ |
+| **Panel del analista** | http://18.191.116.50/panel/login |
+| **Usuario de prueba del panel** | correo y contraseña: enviadas por email |
+| **Las cuatro respuestas** | Panel → **Métricas**  |
 
 **Cómo probar el flujo completo en 3 minutos**
 
 1. Abre el canal de radicación y radica una reclamación con uno o dos documentos. El mensaje de éxito es idéntico en todos los casos (nuevo, repetido o anexado), a propósito: ver sección 7.
-2. El beneficiario recibe un correo con el enlace de seguimiento. [COMPLETAR: cómo se ve ese correo en el entorno desplegado].
+2. El beneficiario recibe un correo con el enlace de seguimiento.
 3. Abre el enlace: ves qué documentos están recibidos, cuáles se están revisando, cuáles faltan y cuáles llegaron pero no sirven, con qué hacer en cada caso. Desde ahí se suben los pendientes.
 4. Entra al panel con el usuario de prueba. El caso aparece con su semáforo del reloj. Ábrelo: ves qué determinó el sistema y con qué información, y registras la decisión.
 
@@ -151,8 +149,6 @@ SELECT * FROM v_claim_timeline WHERE claim_id = '<id>' ORDER BY event_id;
 docker compose -f infra/docker-compose.yml up -d
 ```
 
-[COMPLETAR: confirmar que este compose levanta PostgreSQL y, si lo trae, Mailpit. Si no trae Mailpit: `docker run -d -p 1025:1025 -p 8025:8025 axllent/mailpit`.]
-
 ### 2. Backend
 
 ```bash
@@ -172,7 +168,7 @@ npm run start:worker:dev
 
 Sin worker, los casos se guardan pero nunca salen de «revisando»: es el comportamiento diseñado (guardar primero, procesar después).
 
-**Usuario de prueba del panel:** [COMPLETAR: comando del seed, correo y contraseña].
+**Usuario de prueba del panel:** 
 
 **Correo en desarrollo:** si `SMTP_HOST` está definido, el enlace de seguimiento se envía por correo (con Mailpit, se ve en http://localhost:8025). Si no está definido, el enlace se imprime en el log de la API como `[solo desarrollo] RC-…: /seguimiento#<token>`.
 
