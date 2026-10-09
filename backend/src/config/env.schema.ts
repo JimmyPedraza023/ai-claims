@@ -35,6 +35,15 @@ export const envSchema = z
     // Carpeta del almacenamiento local de archivos (en la nube se reemplaza por Supabase Storage).
     STORAGE_DIR: z.string().min(1).default('./data/uploads'),
 
+    // Almacenamiento de documentos: 'local' (disco) o 's3' (AWS S3).
+    STORAGE_BACKEND: z.enum(['local', 's3']).default('local'),
+    AWS_REGION: optionalStr(z.string().min(2)),
+    AWS_S3_BUCKET: optionalStr(z.string().min(3)),
+
+    // --- Supabase (referencia del proyecto y credenciales de cliente) ---
+    SUPABASE_URL: optionalStr(z.url()),
+    SUPABASE_ANON_KEY: optionalStr(z.string().min(1)),
+
     IP_HASH_SECRET: optionalStr(z.string().min(16, 'debe tener al menos 16 caracteres')),
 
     // Clave secreta de Cloudflare Turnstile (captcha). Sin ella, la verificación se desactiva.
@@ -116,6 +125,13 @@ export const envSchema = z
         code: 'custom',
         path: ['SMTP_PASS'],
         message: 'es obligatoria si se define SMTP_USER',
+      });
+    }
+    if (env.STORAGE_BACKEND === 's3' && (!env.AWS_REGION || !env.AWS_S3_BUCKET)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['STORAGE_BACKEND'],
+        message: 'AWS_REGION y AWS_S3_BUCKET son obligatorias si el almacenamiento es s3',
       });
     }
     if (env.JOB_TIMEOUT_MS <= env.LLM_TIMEOUT_MS) {

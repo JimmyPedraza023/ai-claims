@@ -85,6 +85,24 @@ describe('validateEnv', () => {
     );
     expect(validateEnv(base).TURNSTILE_SECRET_KEY).toBeUndefined();
   });
+
+  it('STORAGE_BACKEND por defecto es local y no exige credenciales de AWS', () => {
+    const env = validateEnv({ ...base, STORAGE_BACKEND: 'local' });
+    expect(env.STORAGE_BACKEND).toBe('local');
+    expect(() => validateEnv(base)).not.toThrow();
+  });
+
+  it('exige AWS_REGION y AWS_S3_BUCKET si el almacenamiento es s3', () => {
+    expect(() => validateEnv({ ...base, STORAGE_BACKEND: 's3' })).toThrow(/AWS_REGION/);
+    expect(() =>
+      validateEnv({
+        ...base,
+        STORAGE_BACKEND: 's3',
+        AWS_REGION: 'us-east-1',
+        AWS_S3_BUCKET: 'mi-bucket',
+      }),
+    ).not.toThrow();
+  });
 });
 
 describe('variables del worker', () => {

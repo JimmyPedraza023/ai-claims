@@ -1,0 +1,18 @@
+# Contexto de build de infra/nginx/Dockerfile = raíz del repo.
+# Excluimos todo lo que el build no necesita para que la imagen no incluya
+# node_modules ni entornos locales.
+**/node_modules
+**/dist
+**/.git
+**/.env
+**/.env.*
+!**/.env.example
+**/*.tsbuildinfo
+backend
+data
+docs
+scripts
+.github
+*.md
+.gitkeep
+img.JPG
